@@ -1,0 +1,86 @@
+name:  publish predictions
+
+# Runs on GitHub's servers: fetches new results and fixtures, retrains the
+# models and republishes the page. No laptop needed.
+on:
+  schedule:
+    - cron: "17 5 * * *"    # every day at 05:17 GMT
+    - cron: "17 17 * * *"   # and again at 17:17 GMT
+  workflow_dispatch:         # the "Run workflow" button on the Actions tab
+  push:
+    branches: [main]
+    paths:
+      - "**/my_matches.csv"
+      - "**/model.py"
+      - "**/download_data.py"
+      - "**/index.html"
+      - ".github/workflows/update.yml"
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Find the project folder
+        run: |
+          FILE=$(find . -name model.py -not -path "./.git/*" | head -1)
+          if [ -z "$FILE" ]; then
+            echo "model.py is not in this repository. Files that are here:"
+            find . -not -path "./.git/*" -type f | head -60
+            exit 1
+          fi
+          DIR=$(dirname "$FILE")
+          for NEEDED in download_data.py app/index.html data/history.csv data/international.csv data/champions_league.csv data/team_names.json; do
+            if [ ! -f "$DIR/$NEEDED" ]; then echo "Missing file: $DIR/$NEEDED"; MISSING=1; fi
+          done
+          if [ -n "$MISSING" ]; then echo "Upload the missing files next to model.py, keeping the app and data folders."; exit 1; fi
+          echo "Project folder: $DIR"
+          echo "PROJECT=$DIR" >> "$GITHUB_ENV"
+
+      - name: Install packages
+        run: pip install numpy scipy
+
+      - name: Fetch results and fixtures
+        working-directory: ${{ env.PROJECT }}
+        env:
+          FOOTBALL_DATA_KEY: ${{ secrets.FOOTBALL_DATA_KEY }}
+        run: python download_data.py --current
+
+      - name: Train the models
+        working-directory: ${{ env.PROJECT }}
+        run: python model.py
+
+      - name: Keep the prediction log
+        working-directory: ${{ env.PROJECT }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f data/prediction_log.csv data/team_names.json data/backtest*.json
+          git diff --cached --quiet || git commit -m "Update prediction log"
+          git push
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: ${{ env.PROJECT }}/app
+
+      - id: deploy
+        uses: actions/deploy-pages@v4
