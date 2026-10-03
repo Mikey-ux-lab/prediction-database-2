@@ -1,0 +1,68 @@
+name: Update predictions
+
+# Runs on GitHub's servers: fetches new results and fixtures, retrains the
+# models and republishes the page. No laptop needed.
+on:
+  schedule:
+    - cron: "17 5 * * *"    # every day at 05:17 GMT
+    - cron: "17 17 * * *"   # and again at 17:17 GMT
+  workflow_dispatch:         # the "Run workflow" button on the Actions tab
+  push:
+    branches: [main]
+    paths:
+      - "data/my_matches.csv"
+      - "model.py"
+      - "download_data.py"
+      - "app/index.html"
+      - ".github/workflows/update.yml"
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install packages
+        run: pip install -r requirements.txt
+
+      - name: Fetch results and fixtures
+        env:
+          FOOTBALL_DATA_KEY: ${{ secrets.FOOTBALL_DATA_KEY }}
+        run: python download_data.py --current
+
+      - name: Train the models
+        run: python model.py
+
+      - name: Keep the prediction log
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/prediction_log.csv data/team_names.json data/backtest.json data/backtest_international.json data/backtest_champions_league.json
+          git diff --cached --quiet || git commit -m "Update prediction log"
+          git push
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: app
+
+      - id: deploy
+        uses: actions/deploy-pages@v4
