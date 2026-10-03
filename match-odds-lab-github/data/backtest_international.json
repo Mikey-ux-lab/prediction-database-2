@@ -1,0 +1,133 @@
+{
+ "from": "2023-08-27",
+ "to": "2026-08-26",
+ "matches": 3098,
+ "competitive": 2314,
+ "elo_logit": [
+  -0.7262,
+  0.2656,
+  0.5094
+ ],
+ "home_win_rate": 0.4732,
+ "models": {
+  "Dixon-Coles": {
+   "logloss": 0.8574,
+   "brier": 0.5033,
+   "accuracy": 0.6049
+  },
+  "Elo": {
+   "logloss": 0.8574,
+   "brier": 0.5044,
+   "accuracy": 0.6046
+  },
+  "Ensemble": {
+   "logloss": 0.852,
+   "brier": 0.5002,
+   "accuracy": 0.6088
+  }
+ },
+ "competitive_only": {
+  "Dixon-Coles": {
+   "logloss": 0.8408,
+   "brier": 0.4925,
+   "accuracy": 0.618
+  },
+  "Elo": {
+   "logloss": 0.8443,
+   "brier": 0.4962,
+   "accuracy": 0.6115
+  },
+  "Ensemble": {
+   "logloss": 0.8375,
+   "brier": 0.4909,
+   "accuracy": 0.6197
+  }
+ },
+ "friendlies_only": {
+  "Dixon-Coles": {
+   "logloss": 0.9062,
+   "brier": 0.5351,
+   "accuracy": 0.5663
+  },
+  "Elo": {
+   "logloss": 0.8963,
+   "brier": 0.5284,
+   "accuracy": 0.5842
+  },
+  "Ensemble": {
+   "logloss": 0.8946,
+   "brier": 0.5278,
+   "accuracy": 0.5765
+  }
+ },
+ "over25": {
+  "Dixon-Coles": 0.6769,
+  "Base rate": 0.6931
+ },
+ "btts": {
+  "Dixon-Coles": 0.6766,
+  "Base rate": 0.6861
+ },
+ "calibration": [
+  {
+   "bin": "0-10%",
+   "predicted": 0.0572,
+   "actual": 0.0405,
+   "n": 1086
+  },
+  {
+   "bin": "10-20%",
+   "predicted": 0.1519,
+   "actual": 0.1298,
+   "n": 1679
+  },
+  {
+   "bin": "20-30%",
+   "predicted": 0.2567,
+   "actual": 0.2621,
+   "n": 2556
+  },
+  {
+   "bin": "30-40%",
+   "predicted": 0.336,
+   "actual": 0.3377,
+   "n": 1288
+  },
+  {
+   "bin": "40-50%",
+   "predicted": 0.4492,
+   "actual": 0.454,
+   "n": 696
+  },
+  {
+   "bin": "50-60%",
+   "predicted": 0.5493,
+   "actual": 0.5509,
+   "n": 579
+  },
+  {
+   "bin": "60-70%",
+   "predicted": 0.6476,
+   "actual": 0.6628,
+   "n": 522
+  },
+  {
+   "bin": "70-80%",
+   "predicted": 0.7474,
+   "actual": 0.7647,
+   "n": 425
+  },
+  {
+   "bin": "80-90%",
+   "predicted": 0.8453,
+   "actual": 0.9032,
+   "n": 310
+  },
+  {
+   "bin": "90-100%",
+   "predicted": 0.9381,
+   "actual": 0.9477,
+   "n": 153
+  }
+ ]
+}

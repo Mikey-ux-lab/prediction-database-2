@@ -1,0 +1,218 @@
+{
+ "seasons": [
+  "2023/24",
+  "2024/25",
+  "2025/26"
+ ],
+ "matches": 5256,
+ "with_odds": 5206,
+ "models": {
+  "Dixon-Coles": {
+   "logloss": 0.9837,
+   "brier": 0.5863,
+   "accuracy": 0.5257
+  },
+  "Elo": {
+   "logloss": 0.987,
+   "brier": 0.5887,
+   "accuracy": 0.5231
+  },
+  "Ensemble": {
+   "logloss": 0.983,
+   "brier": 0.5859,
+   "accuracy": 0.5269
+  },
+  "Bookmakers": {
+   "logloss": 0.9662,
+   "brier": 0.5744,
+   "accuracy": 0.5396
+  }
+ },
+ "by_league": {
+  "E0": {
+   "Dixon-Coles": 0.9802,
+   "Elo": 0.9843,
+   "Ensemble": 0.9795,
+   "Bookmakers": 0.9661
+  },
+  "SP1": {
+   "Dixon-Coles": 0.9695,
+   "Elo": 0.9693,
+   "Ensemble": 0.9678,
+   "Bookmakers": 0.9554
+  },
+  "D1": {
+   "Dixon-Coles": 0.9884,
+   "Elo": 0.9888,
+   "Ensemble": 0.9864,
+   "Bookmakers": 0.962
+  },
+  "I1": {
+   "Dixon-Coles": 0.9828,
+   "Elo": 0.9925,
+   "Ensemble": 0.985,
+   "Bookmakers": 0.9674
+  },
+  "F1": {
+   "Dixon-Coles": 1.0026,
+   "Elo": 1.0038,
+   "Ensemble": 1.0005,
+   "Bookmakers": 0.982
+  }
+ },
+ "value_bets": {
+  "Dixon-Coles": {
+   "bets": 5262,
+   "roi": -0.0965
+  },
+  "Elo": {
+   "bets": 5335,
+   "roi": -0.1214
+  },
+  "Ensemble": {
+   "bets": 4966,
+   "roi": -0.1349
+  }
+ },
+ "calibration": [
+  {
+   "bin": "0-10%",
+   "predicted": 0.0756,
+   "actual": 0.0634,
+   "n": 426
+  },
+  {
+   "bin": "10-20%",
+   "predicted": 0.1589,
+   "actual": 0.1543,
+   "n": 2294
+  },
+  {
+   "bin": "20-30%",
+   "predicted": 0.2568,
+   "actual": 0.2599,
+   "n": 6357
+  },
+  {
+   "bin": "30-40%",
+   "predicted": 0.3447,
+   "actual": 0.3433,
+   "n": 2281
+  },
+  {
+   "bin": "40-50%",
+   "predicted": 0.4486,
+   "actual": 0.4528,
+   "n": 1747
+  },
+  {
+   "bin": "50-60%",
+   "predicted": 0.5464,
+   "actual": 0.5268,
+   "n": 1285
+  },
+  {
+   "bin": "60-70%",
+   "predicted": 0.6466,
+   "actual": 0.6718,
+   "n": 847
+  },
+  {
+   "bin": "70-80%",
+   "predicted": 0.7437,
+   "actual": 0.7335,
+   "n": 409
+  },
+  {
+   "bin": "80-90%",
+   "predicted": 0.8385,
+   "actual": 0.8487,
+   "n": 119
+  }
+ ],
+ "elo_logit": [
+  -0.6603,
+  0.1875,
+  0.5573
+ ],
+ "home_win_rate": 0.4305,
+ "over25": {
+  "Dixon-Coles": 0.6776,
+  "Bookmakers": 0.6697,
+  "Base rate": 0.6905,
+  "matches": 5206
+ },
+ "btts": {
+  "Dixon-Coles": 0.687,
+  "Base rate": 0.6883,
+  "matches": 5256
+ },
+ "match_stats": {
+  "seasons": [
+   "2024/25",
+   "2025/26"
+  ],
+  "stats": {
+   "sh": {
+    "label": "Shots",
+    "line": 24.5,
+    "matches": 3503,
+    "over_rate": 0.513,
+    "model": 0.679,
+    "base": 0.6928,
+    "mae_model": 4.5404,
+    "mae_average": 4.6231
+   },
+   "st": {
+    "label": "Shots on target",
+    "line": 8.5,
+    "matches": 3503,
+    "over_rate": 0.5047,
+    "model": 0.6832,
+    "base": 0.6931,
+    "mae_model": 2.4138,
+    "mae_average": 2.4517
+   },
+   "co": {
+    "label": "Corners",
+    "line": 9.5,
+    "matches": 3503,
+    "over_rate": 0.493,
+    "model": 0.6869,
+    "base": 0.693,
+    "mae_model": 2.7007,
+    "mae_average": 2.7052
+   },
+   "yc": {
+    "label": "Yellow cards",
+    "line": 3.5,
+    "matches": 3503,
+    "over_rate": 0.5641,
+    "model": 0.6742,
+    "base": 0.6849,
+    "mae_model": 1.6411,
+    "mae_average": 1.649
+   },
+   "rc": {
+    "label": "Red cards",
+    "line": 0.5,
+    "matches": 3503,
+    "over_rate": 0.165,
+    "model": 0.4487,
+    "base": 0.4479,
+    "mae_model": 0.3137,
+    "mae_average": 0.3141
+   },
+   "fo": {
+    "label": "Fouls",
+    "line": 23.5,
+    "matches": 3503,
+    "over_rate": 0.4767,
+    "model": 0.6337,
+    "base": 0.6921,
+    "mae_model": 4.1988,
+    "mae_average": 4.4543
+   }
+  }
+ }
+}

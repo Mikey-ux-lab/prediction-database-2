@@ -1,0 +1,89 @@
+{
+ "seasons": [
+  "2023/24",
+  "2024/25",
+  "2025/26"
+ ],
+ "matches": 450,
+ "elo_logit": [
+  -0.5988,
+  0.0963,
+  0.5626
+ ],
+ "home_win_rate": 0.5022,
+ "models": {
+  "Dixon-Coles": {
+   "logloss": 0.9338,
+   "brier": 0.5501,
+   "accuracy": 0.5844
+  },
+  "Elo": {
+   "logloss": 0.9427,
+   "brier": 0.5546,
+   "accuracy": 0.5689
+  },
+  "Ensemble": {
+   "logloss": 0.9309,
+   "brier": 0.5484,
+   "accuracy": 0.5844
+  }
+ },
+ "over25": {
+  "Dixon-Coles": 0.6528,
+  "Base rate": 0.6607
+ },
+ "btts": {
+  "Dixon-Coles": 0.6918,
+  "Base rate": 0.6842
+ },
+ "calibration": [
+  {
+   "bin": "0-10%",
+   "predicted": 0.0714,
+   "actual": 0.0635,
+   "n": 63
+  },
+  {
+   "bin": "10-20%",
+   "predicted": 0.1605,
+   "actual": 0.1731,
+   "n": 260
+  },
+  {
+   "bin": "20-30%",
+   "predicted": 0.2446,
+   "actual": 0.2094,
+   "n": 468
+  },
+  {
+   "bin": "30-40%",
+   "predicted": 0.3482,
+   "actual": 0.3907,
+   "n": 151
+  },
+  {
+   "bin": "40-50%",
+   "predicted": 0.4485,
+   "actual": 0.4552,
+   "n": 134
+  },
+  {
+   "bin": "50-60%",
+   "predicted": 0.5483,
+   "actual": 0.6019,
+   "n": 108
+  },
+  {
+   "bin": "60-70%",
+   "predicted": 0.644,
+   "actual": 0.6742,
+   "n": 89
+  },
+  {
+   "bin": "70-80%",
+   "predicted": 0.7448,
+   "actual": 0.7308,
+   "n": 52
+  }
+ ]
+}

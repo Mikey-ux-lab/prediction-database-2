@@ -1,0 +1,873 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Match Odds Lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #EAF3FB;
+  --card: #FFFFFF;
+  --tint: #DCEEFC;
+  --ink: #0F2A43;
+  --ink-2: #5B7189;
+  --line: #D5E3F0;
+  --sky: #3D9BE9;
+  --sky-ink: #0B4F8A;
+  --home: #3D9BE9;
+  --draw: #A9BCCF;
+  --away: #17385C;
+  --value: #FFC53D;
+  --value-ink: #4A3500;
+  --win: #2FA36B;
+  --loss: #E0605A;
+  --heat: 61, 155, 233;
+  --r-card: 14px;
+  --r-row: 10px;
+  --font: "Figtree", "Segoe UI", system-ui, -apple-system, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0B1826; --card: #12243A; --tint: #1B3655; --ink: #E8F1FA; --ink-2: #93A9C0; --line: #24405F;
+    --sky: #58AEF2; --sky-ink: #BFE0FB; --home: #58AEF2; --draw: #6F86A0; --away: #D6E6F6; --heat: 88, 174, 242;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0B1826; --card: #12243A; --tint: #1B3655; --ink: #E8F1FA; --ink-2: #93A9C0; --line: #24405F;
+  --sky: #58AEF2; --sky-ink: #BFE0FB; --home: #58AEF2; --draw: #6F86A0; --away: #D6E6F6; --heat: 88, 174, 242;
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.5 var(--font); }
+button, input, select { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--sky); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; scroll-behavior: auto !important; } }
+
+/* top bar */
+.top { background: var(--sky); color: #fff; }
+.top-in { max-width: 1280px; margin: 0 auto; padding: 14px 16px; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 20px; }
+.top h1 { font-size: 22px; font-weight: 800; margin: 0; letter-spacing: -.01em; }
+.top p { margin: 0; font-size: 13px; opacity: .92; }
+.top .theme { margin-left: auto; background: rgba(255,255,255,.18); border: 0; color: #fff; border-radius: 999px; padding: 5px 14px; font-size: 13px; font-weight: 600; cursor: pointer; }
+:root[data-theme="dark"] .top, .top.dk { background: #12314F; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .top { background: #12314F; } }
+
+.page { max-width: 1280px; margin: 0 auto; padding: 14px 16px 8px; }
+.card { background: var(--card); border-radius: var(--r-card); border: 1px solid var(--line); }
+.warn { background: #FFF6DB; color: #4A3500; border: 1px solid #F0D48A; border-radius: var(--r-card); padding: 10px 14px; margin-bottom: 12px; font-size: 14px; }
+.warn ul { margin: 4px 0 0; padding-left: 18px; }
+
+/* date strip */
+.strip { display: flex; align-items: stretch; gap: 6px; padding: 8px; margin-bottom: 14px; }
+.strip .nav { border: 0; background: var(--tint); color: var(--sky-ink); border-radius: 10px; width: 34px; font-size: 20px; font-weight: 700; cursor: pointer; flex: none; }
+.days { display: flex; gap: 6px; overflow-x: auto; scroll-behavior: smooth; flex: 1; scrollbar-width: thin; padding-bottom: 2px; }
+.dayb { flex: none; width: 62px; border: 0; background: transparent; border-radius: 12px; padding: 6px 0 5px; cursor: pointer; display: grid; justify-items: center; line-height: 1.15; }
+.dayb:hover { background: var(--tint); }
+.dayb .dw { font-size: 12px; color: var(--ink-2); font-weight: 600; }
+.dayb .dn { font-size: 20px; font-weight: 800; }
+.dayb .dm { font-size: 11px; color: var(--ink-2); }
+.dayb .dc { font-size: 11px; font-weight: 700; color: var(--sky-ink); background: var(--tint); border-radius: 999px; padding: 0 7px; margin-top: 3px; }
+.dayb[aria-pressed="true"] { background: var(--sky); }
+.dayb[aria-pressed="true"] span { color: #fff; }
+.dayb[aria-pressed="true"] .dc { background: rgba(255,255,255,.25); }
+
+.cols { display: grid; grid-template-columns: 410px minmax(0, 1fr); gap: 16px; align-items: start; }
+.cols > * { min-width: 0; }
+@media (max-width: 940px) { .cols { grid-template-columns: minmax(0, 1fr); } }
+
+/* left column */
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+.chip { border: 1px solid var(--line); background: var(--card); border-radius: 999px; padding: 4px 12px; font-size: 13px; font-weight: 600; cursor: pointer; }
+.chip[aria-pressed="true"] { background: var(--ink); color: var(--card); border-color: var(--ink); }
+.grpc { margin-bottom: 12px; overflow: hidden; }
+.grpc h3 { margin: 0; padding: 10px 14px; font-size: 14px; font-weight: 700; display: flex; justify-content: space-between; align-items: baseline; background: color-mix(in srgb, var(--tint) 55%, var(--card)); }
+.grpc h3 small { font-weight: 600; font-size: 11px; color: var(--ink-2); letter-spacing: .04em; }
+.mrow { display: grid; grid-template-columns: 52px minmax(0, 1fr) auto; gap: 10px; align-items: center; width: 100%; text-align: left; border: 0; border-top: 1px solid var(--line); background: transparent; padding: 9px 14px; cursor: pointer; }
+.mrow:hover { background: color-mix(in srgb, var(--tint) 35%, transparent); }
+.mrow[aria-current="true"] { background: var(--tint); box-shadow: inset 4px 0 0 var(--sky); }
+.mrow .tm { font-weight: 700; font-size: 14px; line-height: 1.1; }
+.mrow .tm small { display: block; font-weight: 500; font-size: 11px; color: var(--ink-2); }
+.mrow .tn { display: grid; font-weight: 600; font-size: 14px; line-height: 1.35; min-width: 0; }
+.mrow .tn span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mrow .tn em { font-style: normal; font-weight: 500; font-size: 11px; color: var(--ink-2); }
+.mrow .rt2 { display: grid; justify-items: end; gap: 3px; }
+.pp { display: flex; gap: 3px; }
+.pp i { font-style: normal; font-size: 12px; font-weight: 700; min-width: 30px; text-align: center; padding: 2px 0; border-radius: 6px; background: var(--bg); color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.pp i.best { background: var(--sky); color: #fff; }
+.vdot { font-size: 11px; font-weight: 700; background: var(--value); color: var(--value-ink); border-radius: 6px; padding: 0 6px; }
+.empty { padding: 16px; color: var(--ink-2); font-size: 14px; margin-bottom: 12px; }
+.picker { padding: 14px; display: grid; gap: 9px; }
+.picker h3 { margin: 0; font-size: 15px; font-weight: 700; }
+.picker select { width: 100%; padding: 7px 9px; border: 1px solid var(--line); border-radius: 9px; background: var(--card); }
+.picker .row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.btn { border: 0; background: var(--sky); color: #fff; border-radius: 999px; padding: 8px 14px; font-weight: 700; cursor: pointer; }
+.neu { font-size: 14px; display: flex; gap: 6px; align-items: center; }
+
+/* match detail */
+.match { padding: 20px 20px 8px; }
+.mh { display: grid; grid-template-columns: 1fr auto 1fr; align-items: start; gap: 12px; }
+.mh .t { font-size: clamp(22px, 3.4vw, 34px); font-weight: 800; line-height: 1.08; letter-spacing: -.015em; }
+.mh .t.away { text-align: right; }
+.mh .vs { font-size: 13px; font-weight: 600; color: var(--ink-2); text-align: center; padding-top: 6px; }
+.sub { font-size: 13px; color: var(--ink-2); margin: 8px 0 0; }
+.form { display: flex; gap: 3px; margin-top: 7px; }
+.form.r { justify-content: flex-end; }
+.form i { font-style: normal; width: 20px; height: 20px; display: grid; place-items: center; font-size: 11px; font-weight: 700; border-radius: 50%; color: #fff; }
+.form i.W { background: var(--win); } .form i.D { background: var(--draw); } .form i.L { background: var(--loss); }
+.tag { font-size: 11px; font-weight: 600; background: var(--tint); color: var(--sky-ink); border-radius: 999px; padding: 1px 8px; }
+
+.board { margin: 18px 0 6px; }
+.bigbar { display: flex; height: 52px; border-radius: 26px; overflow: hidden; gap: 3px; }
+.bigbar div { display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 800; min-width: 0; white-space: nowrap; overflow: hidden; }
+.bigbar .h { background: var(--home); color: #fff; } .bigbar .d { background: var(--draw); color: #0F2A43; } .bigbar .a { background: var(--away); color: var(--card); }
+.bigbar small { font-size: 12px; font-weight: 600; opacity: .9; margin-left: 6px; }
+@media (max-width: 600px) { .bigbar small { display: none; } .bigbar div { font-size: 18px; } }
+.models { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 14px; }
+.models th, .models td { padding: 5px 6px; text-align: right; border-bottom: 1px solid var(--line); font-variant-numeric: tabular-nums; }
+.models th:first-child, .models td:first-child { text-align: left; }
+.models th { font-size: 12px; font-weight: 600; color: var(--ink-2); }
+.models tr.main td { font-weight: 700; }
+
+/* team news */
+details.news { margin-top: 14px; background: color-mix(in srgb, var(--tint) 45%, var(--card)); border-radius: 12px; padding: 0 14px; }
+details.news > summary { cursor: pointer; padding: 10px 0; font-weight: 700; font-size: 14px; list-style: none; display: flex; justify-content: space-between; gap: 10px; }
+details.news > summary::-webkit-details-marker { display: none; }
+details.news > summary span { font-weight: 600; color: var(--sky-ink); font-size: 13px; }
+.newsgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 6px 22px; padding-bottom: 12px; }
+.newsgrid h4 { margin: 4px 0 0; font-size: 14px; grid-column: 1 / -1; }
+.sl { display: grid; grid-template-columns: 70px 1fr 48px; gap: 8px; align-items: center; font-size: 13px; }
+.sl input { width: 100%; accent-color: var(--sky); }
+.sl output { text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; }
+.linkbtn { border: 0; background: none; color: var(--sky-ink); text-decoration: underline; cursor: pointer; padding: 0; font-size: 13px; }
+
+/* tabs */
+.tabs { display: flex; gap: 6px; margin: 18px 0 0; overflow-x: auto; padding-bottom: 2px; }
+.tab { border: 0; background: var(--bg); padding: 7px 14px; font-size: 14px; font-weight: 700; color: var(--ink-2); cursor: pointer; border-radius: 999px; white-space: nowrap; }
+.tab[aria-selected="true"] { background: var(--ink); color: var(--card); }
+.panel { padding: 16px 0 14px; }
+
+/* market tables */
+.note { font-size: 13px; color: var(--ink-2); margin: 0 0 12px; max-width: 74ch; }
+.vt { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; }
+.vt input { width: 56px; }
+details.grp { border-top: 1px solid var(--line); }
+details.grp > summary { cursor: pointer; padding: 11px 2px; font-size: 16px; font-weight: 700; list-style: none; display: flex; justify-content: space-between; }
+details.grp > summary::-webkit-details-marker { display: none; }
+details.grp > summary::after { content: "+"; color: var(--ink-2); }
+details.grp[open] > summary::after { content: "–"; }
+.mk { width: 100%; border-collapse: collapse; font-size: 14px; margin-bottom: 12px; }
+.mk th { font-size: 12px; font-weight: 600; color: var(--ink-2); text-align: right; padding: 4px 6px; }
+.mk th:first-child { text-align: left; }
+.mk td { padding: 4px 6px; border-top: 1px solid var(--line); text-align: right; font-variant-numeric: tabular-nums; }
+.mk td:first-child { text-align: left; }
+.mk .pbar { display: inline-block; height: 6px; background: var(--sky); border-radius: 3px; vertical-align: middle; margin-right: 6px; opacity: .55; }
+.odds { width: 72px; padding: 4px 7px; border: 1px solid var(--line); border-radius: 8px; background: var(--card); text-align: right; }
+.odds.pre { border-style: dashed; }
+.edge.pos { background: var(--value); color: var(--value-ink); font-weight: 700; border-radius: 6px; padding: 1px 6px; }
+.edge.neg { color: var(--ink-2); }
+
+/* score grid */
+.gridwrap { overflow-x: auto; }
+.sg { border-collapse: separate; border-spacing: 4px; margin: 0 auto; }
+.sg th { font-size: 13px; font-weight: 600; color: var(--ink-2); padding: 2px 6px; }
+.cell { width: 62px; height: 46px; border: 0; border-radius: 10px; cursor: pointer; font-size: 14px; font-weight: 700; color: var(--ink); }
+.cell small { display: block; font-size: 11px; font-weight: 500; opacity: .8; }
+.cell.dark { color: #fff; }
+.cell[aria-pressed="true"] { outline: 3px solid var(--value); outline-offset: -3px; }
+.selbox { margin: 16px 0 0; padding: 12px 14px; background: color-mix(in srgb, var(--tint) 45%, var(--card)); border-radius: 12px; display: flex; flex-wrap: wrap; gap: 8px 18px; align-items: center; }
+.selbox b { font-size: 24px; font-weight: 800; }
+.presets { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+
+/* stats, ratings, model check */
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px; margin-bottom: 14px; }
+.stat { background: color-mix(in srgb, var(--tint) 45%, var(--card)); border-radius: 12px; padding: 12px; }
+.stat .k { font-size: 13px; color: var(--ink-2); }
+.stat .v { font-size: 28px; font-weight: 800; line-height: 1.15; }
+.rt { width: 100%; border-collapse: collapse; font-size: 14px; }
+.rt th, .rt td { padding: 6px; border-bottom: 1px solid var(--line); text-align: right; font-variant-numeric: tabular-nums; }
+.rt th { font-size: 12px; font-weight: 600; color: var(--ink-2); }
+.rt th:first-child, .rt td:first-child, .rt.r2 th:nth-child(2), .rt.r2 td:nth-child(2) { text-align: left; }
+h3.sec { font-size: 17px; font-weight: 800; margin: 24px 0 6px; }
+h3.sec:first-child { margin-top: 0; }
+.good { color: var(--win); font-weight: 700; }
+.calib { width: 100%; max-width: 420px; height: auto; display: block; }
+.calib text { fill: var(--ink-2); font: 12px var(--font); }
+.res { display: inline-block; width: 18px; text-align: center; font-size: 11px; font-weight: 700; color: #fff; border-radius: 50%; }
+.res.H { background: var(--home); } .res.D { background: var(--draw); } .res.A { background: #17385C; }
+.ok { color: var(--win); } .miss { color: var(--loss); }
+.subtabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
+
+.blank { padding: 28px; }
+.blank h2 { font-size: 24px; font-weight: 800; margin: 0 0 8px; }
+code { background: var(--bg); border-radius: 5px; padding: 0 5px; font-size: 13px; }
+.foot { max-width: 1280px; margin: 0 auto; padding: 4px 16px 28px; font-size: 12px; color: var(--ink-2); }
+</style>
+</head>
+<body>
+<header class="top"><div class="top-in">
+  <h1>Match Odds Lab</h1>
+  <p id="stamp">Loading model…</p>
+  <button class="theme" id="themeBtn" type="button">Dark mode</button>
+</div></header>
+<main class="page" id="app"></main>
+<p class="foot">Probabilities come from past results only. They don't know about injuries, line-ups, suspensions or motivation unless you set the team news sliders, so check team news before you bet, and only stake what you can afford to lose.</p>
+
+<script src="model_data.js"></script>
+<script>
+"use strict";
+const D = window.MODEL_DATA;
+const $ = (s, el = document) => el.querySelector(s);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const pct = p => (p * 100).toFixed(1) + "%";
+const fair = p => p > 0 ? (1 / p).toFixed(2) : "–";
+const store = {
+  get(k, d) { try { const v = localStorage.getItem("mol:" + k); return v === null ? d : JSON.parse(v); } catch { return d; } },
+  set(k, v) { try { localStorage.setItem("mol:" + k, JSON.stringify(v)); } catch {} }
+};
+
+/* theme toggle */
+(function () {
+  const btn = $("#themeBtn");
+  const saved = store.get("theme", null);
+  if (saved) document.documentElement.dataset.theme = saved;
+  const isDark = () => document.documentElement.dataset.theme === "dark" ||
+    (!document.documentElement.dataset.theme && matchMedia("(prefers-color-scheme: dark)").matches);
+  const label = () => btn.textContent = isDark() ? "Light mode" : "Dark mode";
+  label();
+  btn.onclick = () => { const t = isDark() ? "light" : "dark"; document.documentElement.dataset.theme = t; store.set("theme", t); label(); };
+})();
+
+/* ------------------------------------------------------------- maths */
+const MAXG = 10;
+function pois(k, l) { let p = Math.exp(-l); for (let i = 1; i <= k; i++) p *= l / i; return p; }
+function poisCdf(k, l) { let s = 0; for (let i = 0; i <= k; i++) s += pois(i, l); return s; }
+function grid(lam, mu, rho) {
+  const g = [];
+  let tot = 0;
+  for (let i = 0; i <= MAXG; i++) {
+    g.push([]);
+    for (let j = 0; j <= MAXG; j++) {
+      let p = pois(i, lam) * pois(j, mu);
+      if (i === 0 && j === 0) p *= 1 - lam * mu * rho;
+      else if (i === 0 && j === 1) p *= 1 + lam * rho;
+      else if (i === 1 && j === 0) p *= 1 + mu * rho;
+      else if (i === 1 && j === 1) p *= 1 - rho;
+      p = Math.max(p, 0); g[i].push(p); tot += p;
+    }
+  }
+  return g.map(r => r.map(p => p / tot));
+}
+const sumG = (g, f) => { let s = 0; for (let i = 0; i <= MAXG; i++) for (let j = 0; j <= MAXG; j++) if (f(i, j)) s += g[i][j]; return s; };
+const sig = z => 1 / (1 + Math.exp(-z));
+function eloProbs(diff, logit) {
+  const [c1, k, b] = logit, z = diff / 100 * b;
+  const pa = sig(c1 - z), pad = sig(c1 + Math.exp(k) - z);
+  return [1 - pad, pad - pa, pa];
+}
+/* counts such as corners: negative binomial (Poisson when alpha is 0) */
+function nbPmf(mean, alpha, n = 80) {
+  const p = [alpha < 1e-6 ? Math.exp(-mean) : Math.pow(1 / (1 + alpha * mean), 1 / alpha)];
+  const k = alpha < 1e-6 ? 0 : 1 / alpha;
+  for (let i = 0; i < n; i++) p.push(alpha < 1e-6 ? p[i] * mean / (i + 1) : p[i] * (i + k) / (i + 1) * mean / (k + mean));
+  const t = p.reduce((x, y) => x + y, 0);
+  return p.map(v => v / t);
+}
+function conv(a, b) {
+  const out = new Array(a.length + b.length - 1).fill(0);
+  for (let i = 0; i < a.length; i++) for (let j = 0; j < b.length; j++) out[i + j] += a[i] * b[j];
+  return out;
+}
+const overLine = (pmf, line) => pmf.slice(Math.floor(line) + 1).reduce((x, y) => x + y, 0);
+function matchStats(P, neutral) {
+  if (!P.lg.stats || !P.th.stats || !P.ta.stats) return null;
+  return Object.entries(P.lg.stats).filter(([k]) => P.th.stats[k] && P.ta.stats[k]).map(([k, st]) => {
+    const h = Math.exp(st.mu0 + (neutral ? 0 : st.hfa) + P.th.stats[k][0] + P.ta.stats[k][1]);
+    const a = Math.exp(st.mu0 + P.ta.stats[k][0] + P.th.stats[k][1]);
+    const ph = nbPmf(h, st.alpha), pa = nbPmf(a, st.alpha);
+    return { k, label: st.label, line: st.line, h, a, ph, pa, pt: conv(ph, pa) };
+  });
+}
+const hda = g => [sumG(g, (i, j) => i > j), sumG(g, (i, j) => i === j), sumG(g, (i, j) => i < j)];
+/* adj = team news: {ha, hd, aa, ad} in percent for home/away attack/defence */
+function predict(L, home, away, neutral, adj) {
+  const lg = D.leagues[L], th = lg.teams[home], ta = lg.teams[away];
+  const E = lg.elo || D.elo;   // national teams and the Champions League carry their own Elo settings
+  let lam = Math.exp(lg.mu0 + (neutral ? 0 : lg.hfa) + th.att + ta.def);
+  let mu = Math.exp(lg.mu0 + ta.att + th.def);
+  let g = grid(lam, mu, lg.rho);
+  let dc = hda(g);
+  let elo = eloProbs(th.elo + (neutral ? 0 : E.hfa) - ta.elo, E.logit);
+  const A = adj && (adj.ha || adj.hd || adj.aa || adj.ad) ? adj : null;
+  if (A) {
+    const base = dc;
+    lam = lam * (1 + A.ha / 100) / (1 + A.ad / 100);
+    mu = mu * (1 + A.aa / 100) / (1 + A.hd / 100);
+    g = grid(lam, mu, lg.rho);
+    dc = hda(g);
+    const raw = elo.map((p, k) => p * dc[k] / Math.max(base[k], 1e-9)), t = raw[0] + raw[1] + raw[2];
+    elo = raw.map(v => v / t);   // move Elo by the same proportion
+  }
+  const ens = dc.map((p, k) => (p + elo[k]) / 2);
+  let sot = null;
+  if (lg.sot && th.sot_att !== undefined && ta.sot_att !== undefined) {
+    const sh = Math.exp(lg.sot.mu0 + lg.sot.hfa + th.sot_att + ta.sot_def);
+    const sa = Math.exp(lg.sot.mu0 + ta.sot_att + th.sot_def);
+    sot = { home: sh, away: sa, homeKeeper: Math.max(sa - mu, 0.2), awayKeeper: Math.max(sh - lam, 0.2) };
+  }
+  return { lam, mu, g, dc, elo, ens, sot, th, ta, lg, adjusted: !!A };
+}
+
+/* ------------------------------------------------------------- state */
+const ORDER = ["CL", "E0", "SP1", "D1", "I1", "F1", "INT"];
+const S = {
+  league: store.get("league", "ALL"),
+  date: null,
+  match: null,            // {L, home, away, fx, neutral}
+  tab: store.get("tab", "markets"),
+  sel: new Set(),          // selected score cells "i-j"
+  edge: store.get("edge", (D && D.settings ? D.settings.value_edge : 0.05) * 100),
+  odds: store.get("odds", {}),
+  adj: {},                 // team news per match
+  newsOpen: false,
+  check: "club",
+};
+const mkey = m => `${m.L}|${m.home}|${m.away}${m.neutral ? "|N" : ""}`;
+const adjOf = m => S.adj[mkey(m)] || { ha: 0, hd: 0, aa: 0, ad: 0 };
+const leagueKeys = () => ORDER.filter(k => D.leagues[k]).concat(Object.keys(D.leagues).filter(k => !ORDER.includes(k)));
+const tzLabel = f => f.tz === "UK" ? "UK" : f.tz === "UTC" ? "GMT" : f.tz === "local" ? "local" : "";
+
+function fmtDate(iso) {
+  const d = new Date(iso + "T12:00:00");
+  return d.toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" });
+}
+function filteredFixtures() { return D.fixtures.filter(f => S.league === "ALL" || f.div === S.league); }
+
+function fixtureValue(f) {
+  const p = predict(f.div, f.home, f.away, !!f.neutral);
+  const thr = S.edge / 100;
+  const best = f.best || {};
+  const o25 = sumG(p.g, (i, j) => i + j > 2);
+  const checks = [[p.ens[0], best.H], [p.ens[1], best.D], [p.ens[2], best.A], [o25, best.O25], [1 - o25, best.U25]];
+  return { p, value: checks.some(([q, o]) => o && q * o - 1 >= thr) };
+}
+
+/* ------------------------------------------------------------- shell */
+function boot() {
+  const app = $("#app");
+  if (!D) {
+    $("#stamp").textContent = "No model data yet";
+    app.innerHTML = `<div class="card blank"><h2>Nothing to show yet</h2>
+      <p>This page reads <code>model_data.js</code>, which the model creates. In the project folder, double-click <code>setup.bat</code> the first time (or <code>update.bat</code> after that), then refresh this page.</p></div>`;
+    return;
+  }
+  const total = D.matches + (D.int_matches || 0) + (D.cl_matches || 0);
+  $("#stamp").textContent = `Leagues to ${fmtDate(D.data_through)}` + (D.cl_through ? `, Champions League to ${fmtDate(D.cl_through)}` : "") +
+    (D.int_through ? `, national teams to ${fmtDate(D.int_through)}` : "") + `. Updated ${D.generated}. ${total.toLocaleString()} matches.`;
+  const warn = (D.warnings || []).length ? `<div class="warn"><b>Check your spreadsheet.</b> These rows in <code>data\\my_matches.csv</code> were skipped:<ul>${D.warnings.map(w => `<li>${esc(w.replace(/^my_matches\.csv /, ""))}</li>`).join("")}</ul></div>` : "";
+  app.innerHTML = `${warn}<section class="card strip" id="strip" aria-label="Match days"></section>
+    <div class="cols"><div><div class="chips" id="filters" role="group" aria-label="Competition"></div><div id="list"></div><form class="card picker" id="picker"></form>${D.sheet ? `<p class="note" style="margin:10px 4px 0">Your spreadsheet (<code>data\\my_matches.csv</code>): ${D.sheet.results} new result${D.sheet.results === 1 ? "" : "s"} and ${D.sheet.fixtures} upcoming match${D.sheet.fixtures === 1 ? "" : "es"} in use${D.sheet.already_known ? `, ${D.sheet.already_known} already in the main data` : ""}.</p>` : ""}</div>
+    <section class="card" id="main"></section></div>`;
+  if (!D.leagues[S.league]) S.league = "ALL";
+  const first = filteredFixtures()[0] || D.fixtures[0];
+  if (first) { S.date = first.date; openMatch(first.div, first.home, first.away, first, false, !!first.neutral); }
+  else {
+    const L = leagueKeys()[0], t = Object.keys(D.leagues[L].teams);
+    openMatch(L, t[0], t[1], null);
+  }
+}
+
+function renderSide() { renderFilters(); renderStrip(); renderList(); renderPicker(); }
+
+function renderFilters() {
+  $("#filters").innerHTML = `<button class="chip" data-lg="ALL" aria-pressed="${S.league === "ALL"}">All</button>` +
+    leagueKeys().map(k => `<button class="chip" data-lg="${k}" aria-pressed="${S.league === k}">${esc(D.leagues[k].name)}</button>`).join("");
+  $("#filters").querySelectorAll(".chip").forEach(b => b.onclick = () => {
+    S.league = b.dataset.lg; store.set("league", S.league);
+    const dates = [...new Set(filteredFixtures().map(f => f.date))];
+    if (!dates.includes(S.date)) S.date = dates[0] || null;
+    S.stripTo = true;
+    renderSide();
+  });
+}
+
+function renderStrip() {
+  const strip = $("#strip");
+  const counts = new Map();
+  for (const f of filteredFixtures()) counts.set(f.date, (counts.get(f.date) || 0) + 1);
+  if (!counts.size) { strip.style.display = "none"; return; }
+  strip.style.display = "";
+  const keep = $("#days") ? $("#days").scrollLeft : null;
+  strip.innerHTML = `<button class="nav" data-dir="-1" type="button" aria-label="Earlier days">‹</button><div class="days" id="days">` +
+    [...counts].map(([d, n]) => {
+      const dt = new Date(d + "T12:00:00");
+      return `<button class="dayb" type="button" data-d="${d}" aria-pressed="${d === S.date}" aria-label="${fmtDate(d)}, ${n} match${n > 1 ? "es" : ""}">
+        <span class="dw">${dt.toLocaleDateString(undefined, { weekday: "short" })}</span><span class="dn">${dt.getDate()}</span>
+        <span class="dm">${dt.toLocaleDateString(undefined, { month: "short" })}</span><span class="dc">${n}</span></button>`;
+    }).join("") + `</div><button class="nav" data-dir="1" type="button" aria-label="Later days">›</button>`;
+  const days = $("#days");
+  const sel = days.querySelector('[aria-pressed="true"]');
+  if (S.stripTo || keep === null) { if (sel) days.scrollLeft = sel.offsetLeft - days.offsetLeft - 8; S.stripTo = false; }
+  else days.scrollLeft = keep;
+  days.querySelectorAll(".dayb").forEach(b => b.onclick = () => { S.date = b.dataset.d; renderStrip(); renderList(); });
+  strip.querySelectorAll(".nav").forEach(b => b.onclick = () => { days.scrollLeft += +b.dataset.dir * days.clientWidth * 0.8; });
+}
+
+function renderList() {
+  const list = $("#list");
+  const day = filteredFixtures().filter(f => f.date === S.date);
+  if (!day.length) {
+    const lg = S.league !== "ALL" ? D.leagues[S.league] : null;
+    list.innerHTML = `<div class="card empty">${lg && lg.international
+      ? "No upcoming national-team matches yet. Add them to <code>data\\my_matches.csv</code> (leave the score blank) and they appear after the next update. Or pick two countries below."
+      : lg && lg.european ? "No upcoming Champions League fixtures yet. They arrive with your football-data.org key. Until then, pick two clubs below."
+      : "No upcoming fixtures in the data yet. They appear after the next update. Or pick any two teams below."}</div>`;
+    return;
+  }
+  let html = "";
+  for (const k of leagueKeys()) {
+    const rows = day.filter(f => f.div === k);
+    if (!rows.length) continue;
+    html += `<div class="card grpc"><h3>${esc(D.leagues[k].name)}<small>1 &nbsp; X &nbsp; 2 &nbsp;%</small></h3>`;
+    for (const f of rows) {
+      const { p, value } = fixtureValue(f);
+      const top = p.ens.indexOf(Math.max(...p.ens));
+      const cur = S.match && S.match.fx === f;
+      const sub = f.div === "INT" ? f.comp : f.div === "CL" ? (f.comp || "").replace("Champions League, ", "").replace("Champions League", "") : "";
+      html += `<button class="mrow" type="button" data-i="${D.fixtures.indexOf(f)}" aria-current="${!!cur}">
+        <span class="tm">${esc(f.time || "–")}<small>${tzLabel(f)}</small></span>
+        <span class="tn"><span>${esc(f.home)}</span><span>${esc(f.away)}</span>${sub || f.neutral ? `<em>${esc(sub || "")}${sub && f.neutral ? ", " : ""}${f.neutral ? "neutral venue" : ""}</em>` : ""}</span>
+        <span class="rt2"><span class="pp" title="Home ${pct(p.ens[0])}, draw ${pct(p.ens[1])}, away ${pct(p.ens[2])}">${p.ens.map((v, i) => `<i class="${i === top ? "best" : ""}">${Math.round(v * 100)}</i>`).join("")}</span>
+        ${value ? `<span class="vdot">value</span>` : ""}</span></button>`;
+    }
+    html += `</div>`;
+  }
+  list.innerHTML = html;
+  list.querySelectorAll(".mrow").forEach(b => b.onclick = () => { const f = D.fixtures[+b.dataset.i]; openMatch(f.div, f.home, f.away, f, true, !!f.neutral); });
+}
+
+function renderPicker() {
+  const keys = leagueKeys();
+  $("#picker").innerHTML = `<h3>Any two teams</h3>
+    <select id="pl" aria-label="Competition">${keys.map(k => `<option value="${k}">${esc(D.leagues[k].name)}</option>`).join("")}</select>
+    <div class="row"><select id="ph" aria-label="Home team"></select><select id="pa" aria-label="Away team"></select></div>
+    <label class="neu" id="neuWrap"><input type="checkbox" id="pn"> Neutral venue (no home advantage)</label>
+    <button class="btn" type="submit">Show prediction</button>`;
+  const pl = $("#pl"), ph = $("#ph"), pa = $("#pa"), pn = $("#pn");
+  const fill = () => {
+    const opt = !!D.leagues[pl.value].neutral_option;
+    $("#neuWrap").style.display = opt ? "" : "none";
+    if (!opt) pn.checked = false;
+    const teams = Object.keys(D.leagues[pl.value].teams).sort();
+    const opts = teams.map(t => `<option>${esc(t)}</option>`).join("");
+    ph.innerHTML = opts; pa.innerHTML = opts; pa.selectedIndex = Math.min(1, teams.length - 1);
+  };
+  pl.value = S.league !== "ALL" ? S.league : S.match ? S.match.L : keys[0];
+  fill();
+  if (S.match && S.match.L === pl.value) { ph.value = S.match.home; pa.value = S.match.away; pn.checked = !!S.match.neutral; }
+  pl.onchange = fill;
+  $("#picker").onsubmit = e => {
+    e.preventDefault();
+    if (ph.value === pa.value) { pa.focus(); return; }
+    const f = D.fixtures.find(x => x.div === pl.value && x.home === ph.value && x.away === pa.value && !!x.neutral === pn.checked) || null;
+    openMatch(pl.value, ph.value, pa.value, f, true, pn.checked);
+  };
+}
+
+function openMatch(L, home, away, fx, userPicked, neutral) {
+  S.match = { L, home, away, fx, neutral: !!neutral };
+  S.sel = new Set();
+  // prefill odds from football-data averages, without overwriting your own entries
+  if (fx && fx.odds) {
+    const k = mkey(S.match);
+    S.odds[k] = S.odds[k] || {};
+    const pre = { "1x2-H": fx.odds.H, "1x2-D": fx.odds.D, "1x2-A": fx.odds.A, "ou-2.5-O": fx.odds.O25, "ou-2.5-U": fx.odds.U25 };
+    for (const [id, v] of Object.entries(pre)) if (v && !(id in S.odds[k])) S.odds[k][id] = { v, pre: true };
+  }
+  renderSide();
+  renderMain();
+  if (userPicked && matchMedia("(max-width: 940px)").matches) $("#main").scrollIntoView({ block: "start" });
+}
+
+function formHTML(form, right) {
+  return `<div class="form${right ? " r" : ""}" aria-label="Last five results">${form.map(f =>
+    `<i class="${f.r}" title="${esc(f.d)} ${f.ha === "A" ? "at" : "vs"} ${esc(f.opp)} ${f.s}${f.c ? " (" + esc(f.c) + ")" : ""}">${f.r}</i>`).join("")}</div>`;
+}
+
+function newsHTML(m, a) {
+  const sl = (id, label, v) => `<label class="sl"><span>${label}</span><input type="range" min="-40" max="20" step="5" value="${v}" data-k="${id}"><output>${v > 0 ? "+" : ""}${v}%</output></label>`;
+  const on = a.ha || a.hd || a.aa || a.ad;
+  return `<details class="news"${S.newsOpen ? " open" : ""}><summary>Team news adjustment<span>${on ? "In use" : "Not set"}</span></summary>
+    <p class="note">If key players are out, mark that team down, for example attack −15% when the main striker is missing. Everything on this page updates. It's your judgement, not something the model has measured.</p>
+    <div class="newsgrid">
+      <div><h4>${esc(m.home)}</h4>${sl("ha", "Attack", a.ha)}${sl("hd", "Defence", a.hd)}</div>
+      <div><h4>${esc(m.away)}</h4>${sl("aa", "Attack", a.aa)}${sl("ad", "Defence", a.ad)}</div>
+    </div>${on ? `<p style="margin:0 0 12px"><button class="linkbtn" id="newsReset" type="button">Clear adjustment</button></p>` : ""}</details>`;
+}
+
+function renderMain() {
+  const m = S.match, adj = adjOf(m), P = predict(m.L, m.home, m.away, m.neutral, adj);
+  const fx = m.fx;
+  const book = fx && fx.odds && fx.odds.H && fx.odds.D && fx.odds.A
+    ? (() => { const inv = [1 / fx.odds.H, 1 / fx.odds.D, 1 / fx.odds.A], s = inv[0] + inv[1] + inv[2]; return inv.map(v => v / s); })() : null;
+  const e = P.ens;
+  const lbl = (p, txt) => p > 0.14 ? `${Math.round(p * 100)}%<small>${txt}</small>` : p > 0.11 ? `${Math.round(p * 100)}%` : "";
+  const row = (name, p, cls = "") => `<tr class="${cls}"><td>${name}</td><td>${pct(p[0])}</td><td>${pct(p[1])}</td><td>${pct(p[2])}</td></tr>`;
+  const when = fx ? esc(fmtDate(fx.date)) + (fx.time ? "<br>" + esc(fx.time) + (tzLabel(fx) ? " " + tzLabel(fx) + (fx.tz === "local" ? " time" : "") : "") : "") : "v";
+  $("#main").innerHTML = `<div class="match">
+    <div class="mh">
+      <div><div class="t">${esc(m.home)}</div>${formHTML(P.th.form)}${P.th.promoted ? `<div style="margin-top:6px"><span class="tag">promoted</span></div>` : ""}</div>
+      <div class="vs">${when}</div>
+      <div><div class="t away">${esc(m.away)}</div>${formHTML(P.ta.form, true)}${P.ta.promoted ? `<div style="text-align:right;margin-top:6px"><span class="tag">promoted</span></div>` : ""}</div>
+    </div>
+    <p class="sub">${esc((fx && fx.comp) || P.lg.name)}${m.neutral ? ", neutral venue" : ""}. Expected goals ${P.lam.toFixed(2)} – ${P.mu.toFixed(2)}. Elo ${Math.round(P.th.elo)} v ${Math.round(P.ta.elo)}.${P.adjusted ? " <b>Includes your team news adjustment.</b>" : ""}</p>
+    <div class="board">
+      <div class="bigbar" role="img" aria-label="Home ${pct(e[0])}, draw ${pct(e[1])}, away ${pct(e[2])}">
+        <div class="h" style="width:${e[0] * 100}%">${lbl(e[0], "home")}</div>
+        <div class="d" style="width:${e[1] * 100}%">${lbl(e[1], "draw")}</div>
+        <div class="a" style="width:${e[2] * 100}%">${lbl(e[2], "away")}</div>
+      </div>
+      <table class="models"><thead><tr><th>Model</th><th>Home</th><th>Draw</th><th>Away</th></tr></thead><tbody>
+        ${row("Ensemble (used below)", P.ens, "main")}${row("Dixon-Coles", P.dc)}${row("Elo", P.elo)}
+        ${book ? row("Bookmakers (average, margin removed)", book) : ""}
+      </tbody></table>
+    </div>
+    ${newsHTML(m, adj)}
+    <div class="tabs" role="tablist">
+      ${[["markets", "Markets"], ["score", "Correct score"], ["stats", "Match stats"], ["saves", "Goalkeeper saves"], ["ratings", "Team ratings"], ["check", "How good is it?"]]
+        .map(([k, v]) => `<button class="tab" role="tab" data-tab="${k}" aria-selected="${S.tab === k}">${v}</button>`).join("")}
+    </div>
+    <div class="panel" id="panel"></div>
+  </div>`;
+  const main = $("#main");
+  main.querySelectorAll(".tab").forEach(b => b.onclick = () => { S.tab = b.dataset.tab; store.set("tab", S.tab); renderMain(); });
+  const news = main.querySelector("details.news");
+  news.ontoggle = () => { S.newsOpen = news.open; };
+  news.querySelectorAll("input[type=range]").forEach(inp => {
+    inp.oninput = () => { const v = +inp.value; inp.nextElementSibling.textContent = (v > 0 ? "+" : "") + v + "%"; };
+    inp.onchange = () => { S.adj[mkey(m)] = { ...adjOf(m), [inp.dataset.k]: +inp.value }; S.newsOpen = true; renderMain(); };
+  });
+  if ($("#newsReset")) $("#newsReset").onclick = () => { delete S.adj[mkey(m)]; renderMain(); };
+  ({ markets: panelMarkets, score: panelScore, stats: panelStats, saves: panelSaves, ratings: panelRatings, check: panelCheck })[S.tab](P);
+}
+
+/* ------------------------------------------------------------- markets */
+function marketGroups(P) {
+  const g = P.g, [pH, pD, pA] = P.ens;
+  const T = (i, j) => i + j;
+  const groups = [];
+  groups.push({ name: "Match result", open: true, rows: [["1x2-H", "Home win (1)", pH], ["1x2-D", "Draw (X)", pD], ["1x2-A", "Away win (2)", pA]] });
+  groups.push({ name: "Double chance", rows: [["dc-1X", "Home or draw (1X)", pH + pD], ["dc-12", "Home or away (12)", pH + pA], ["dc-X2", "Draw or away (X2)", pD + pA]] });
+  const ou = [];
+  for (const line of [0.5, 1.5, 2.5, 3.5, 4.5, 5.5]) {
+    const o = sumG(g, (i, j) => T(i, j) > line);
+    ou.push([`ou-${line}-O`, `Over ${line}`, o], [`ou-${line}-U`, `Under ${line}`, 1 - o]);
+  }
+  groups.push({ name: "Total goals over/under", open: true, rows: ou });
+  const btts = sumG(g, (i, j) => i > 0 && j > 0);
+  groups.push({ name: "Both teams to score", open: true, rows: [["btts-Y", "Yes (GG)", btts], ["btts-N", "No (NG)", 1 - btts]] });
+  const tt = [];
+  for (const line of [0.5, 1.5, 2.5]) {
+    const h = sumG(g, i => i > line), a = sumG(g, (i, j) => j > line);
+    tt.push([`th-${line}-O`, `${S.match.home} over ${line}`, h], [`th-${line}-U`, `${S.match.home} under ${line}`, 1 - h]);
+    tt.push([`ta-${line}-O`, `${S.match.away} over ${line}`, a], [`ta-${line}-U`, `${S.match.away} under ${line}`, 1 - a]);
+  }
+  groups.push({ name: "Team goals", rows: tt });
+  const mg = [[1, 2], [1, 3], [1, 4], [2, 3], [2, 4], [2, 5], [3, 4], [3, 5], [3, 6], [4, 6]].map(([lo, hi]) =>
+    [`mg-${lo}-${hi}`, `${lo}–${hi} goals`, sumG(g, (i, j) => T(i, j) >= lo && T(i, j) <= hi)]);
+  mg.unshift(["mg-0", "No goals", g[0][0]]);
+  mg.push(["mg-7", "7 or more goals", sumG(g, (i, j) => T(i, j) >= 7)]);
+  groups.push({ name: "Multigoals", rows: mg });
+  const res = [["1", (i, j) => i > j], ["X", (i, j) => i === j], ["2", (i, j) => i < j]];
+  const combo = [];
+  // combos use the Dixon-Coles grid scaled so the result part matches the ensemble
+  const scale = res.map(([, f], k) => P.ens[k] / Math.max(sumG(g, f), 1e-9));
+  for (const [k, [r, f]] of res.entries()) {
+    const ov = sumG(g, (i, j) => f(i, j) && T(i, j) > 2.5) * scale[k];
+    const gg = sumG(g, (i, j) => f(i, j) && i > 0 && j > 0) * scale[k];
+    combo.push([`c-${r}-O`, `${r} & over 2.5`, ov], [`c-${r}-U`, `${r} & under 2.5`, P.ens[k] - ov]);
+    combo.push([`c-${r}-GG`, `${r} & both score`, gg], [`c-${r}-NG`, `${r} & not both score`, P.ens[k] - gg]);
+  }
+  for (const [y, ny] of [[true, "Yes"], [false, "No"]]) for (const [o, no] of [[true, "over"], [false, "under"]])
+    combo.push([`c-btts${ny}-${no}`, `BTTS ${ny.toLowerCase()} & ${no} 2.5`, sumG(g, (i, j) => ((i > 0 && j > 0) === y) && ((T(i, j) > 2.5) === o))]);
+  groups.push({ name: "Combos", rows: combo });
+  return groups;
+}
+
+function oddsEntry(id) { const o = (S.odds[mkey(S.match)] || {})[id]; return o ? o : null; }
+function setOdds(id, v) {
+  const k = mkey(S.match);
+  S.odds[k] = S.odds[k] || {};
+  if (v > 1) S.odds[k][id] = { v, pre: false }; else delete S.odds[k][id];
+  store.set("odds", S.odds);
+}
+function edgeHTML(p, o) {
+  if (!o || !(o > 1)) return "";
+  const ev = p * o - 1;
+  const cls = ev >= S.edge / 100 ? "pos" : "neg";
+  return `<span class="edge ${cls}">${ev >= 0 ? "+" : ""}${(ev * 100).toFixed(1)}%</span>`;
+}
+
+function marketTable(rows) {
+  return `<table class="mk"><thead><tr><th>Selection</th><th>Chance</th><th>Fair odds</th><th>Your odds</th><th>Edge</th></tr></thead><tbody>
+    ${rows.map(([id, name, p]) => {
+      const o = oddsEntry(id);
+      return `<tr data-id="${id}" data-p="${p}"><td>${esc(name)}</td>
+        <td><span class="pbar" style="width:${Math.round(p * 60)}px"></span>${pct(p)}</td>
+        <td>${fair(p)}</td>
+        <td><input class="odds${o && o.pre ? " pre" : ""}" type="number" step="0.01" min="1.01" inputmode="decimal"
+          aria-label="Bookmaker odds for ${esc(name)}" value="${o ? o.v : ""}" ${o && o.pre ? 'title="Average market odds from football-data. Type your SportyBet price over it."' : ""}></td>
+        <td class="e">${edgeHTML(p, o && o.v)}</td></tr>`;
+    }).join("")}</tbody></table>`;
+}
+
+function wireOdds(root) {
+  root.querySelectorAll("tr[data-id]").forEach(tr => {
+    const inp = tr.querySelector("input");
+    if (!inp) return;
+    inp.oninput = () => {
+      const v = parseFloat(inp.value);
+      setOdds(tr.dataset.id, v);
+      inp.classList.remove("pre");
+      tr.querySelector(".e").innerHTML = edgeHTML(+tr.dataset.p, v);
+    };
+  });
+}
+
+function panelMarkets(P) {
+  const groups = marketGroups(P);
+  const pn = $("#panel");
+  pn.innerHTML = `<p class="note">Type the odds your bookmaker offers (SportyBet or any other) into <b>Your odds</b>. <b>Edge</b> is how much you'd expect to win per 1 staked if the model's chance is right; it turns yellow above
+    <label class="vt"><input id="edgeIn" class="odds" type="number" min="0" max="50" step="0.5" value="${S.edge}">%</label>.
+    Dashed boxes are pre-filled with average market odds.</p>
+    ${groups.map(gp => `<details class="grp"${gp.open ? " open" : ""}><summary>${esc(gp.name)}</summary>${marketTable(gp.rows)}</details>`).join("")}
+    <p class="note">The result market uses the ensemble. Goals markets use Dixon-Coles. Combos use Dixon-Coles adjusted to the ensemble's result probabilities.</p>`;
+  wireOdds(pn);
+  $("#edgeIn").oninput = e => {
+    S.edge = parseFloat(e.target.value) || 0; store.set("edge", S.edge);
+    pn.querySelectorAll("tr[data-id]").forEach(tr => { const v = parseFloat(tr.querySelector("input").value); tr.querySelector(".e").innerHTML = edgeHTML(+tr.dataset.p, v); });
+    renderSide();
+  };
+}
+
+/* ------------------------------------------------------------- correct score */
+function panelScore(P) {
+  const g = P.g, N = 6, pn = $("#panel");
+  let max = 0;
+  for (let i = 0; i <= N; i++) for (let j = 0; j <= N; j++) max = Math.max(max, g[i][j]);
+  let rows = "";
+  for (let i = 0; i <= N; i++) {
+    rows += `<tr><th class="axis" scope="row">${i}</th>`;
+    for (let j = 0; j <= N; j++) {
+      const p = g[i][j], a = Math.pow(p / max, 0.8), key = `${i}-${j}`;
+      rows += `<td><button class="cell${a > 0.55 ? " dark" : ""}" data-k="${key}" aria-pressed="${S.sel.has(key)}"
+        style="background:rgba(var(--heat), ${(0.06 + a * 0.9).toFixed(3)})" aria-label="${i}-${j}, ${pct(p)}">${i}-${j}<small>${(p * 100).toFixed(1)}</small></button></td>`;
+    }
+    rows += "</tr>";
+  }
+  const other = 1 - sumG(g, (i, j) => i <= N && j <= N);
+  pn.innerHTML = `<p class="note">Tap scores to build a multiscore. The total chance and fair odds update as you select. Rows are ${esc(S.match.home)} goals, columns are ${esc(S.match.away)} goals.</p>
+    <div class="presets">
+      <button class="chip" data-p="home1">Home by 1</button><button class="chip" data-p="away1">Away by 1</button>
+      <button class="chip" data-p="draws">Any draw</button><button class="chip" data-p="top5">Top 5 scores</button>
+      <button class="chip" data-p="clear">Clear</button></div>
+    <div class="gridwrap"><table class="sg"><thead><tr><th></th>${Array.from({ length: N + 1 }, (_, j) => `<th class="axis" scope="col">${j}</th>`).join("")}</tr></thead><tbody>${rows}</tbody></table></div>
+    <p class="note" style="text-align:center;margin-top:8px">Any other score (7+ for a team): ${pct(other)}</p>
+    <div class="selbox" id="selbox"></div>`;
+  const update = () => {
+    const keys = [...S.sel].sort();
+    const p = keys.reduce((s, k) => { const [i, j] = k.split("-").map(Number); return s + g[i][j]; }, 0);
+    const box = $("#selbox");
+    if (!keys.length) { box.innerHTML = `<span class="note" style="margin:0">No scores selected yet.</span>`; return; }
+    const id = "ms-" + keys.join(",");
+    const o = oddsEntry(id);
+    box.innerHTML = `<div><div class="note" style="margin:0">${keys.length} score${keys.length > 1 ? "s" : ""}: ${keys.join(", ")}</div><b>${pct(p)}</b> <span class="note">fair odds ${fair(p)}</span></div>
+      <table class="mk" style="width:auto;margin:0"><tbody><tr data-id="${id}" data-p="${p}"><td>Your odds</td>
+      <td><input class="odds" type="number" step="0.01" min="1.01" inputmode="decimal" aria-label="Your odds for this multiscore" value="${o ? o.v : ""}"></td>
+      <td class="e">${edgeHTML(p, o && o.v)}</td></tr></tbody></table>`;
+    wireOdds(box);
+  };
+  pn.querySelectorAll(".cell").forEach(b => b.onclick = () => {
+    const k = b.dataset.k;
+    S.sel.has(k) ? S.sel.delete(k) : S.sel.add(k);
+    b.setAttribute("aria-pressed", S.sel.has(k));
+    update();
+  });
+  pn.querySelectorAll(".presets .chip").forEach(b => b.onclick = () => {
+    S.sel = new Set();
+    const t = b.dataset.p;
+    const all = [];
+    for (let i = 0; i <= N; i++) for (let j = 0; j <= N; j++) all.push([i, j]);
+    if (t === "home1") all.filter(([i, j]) => i - j === 1).forEach(([i, j]) => S.sel.add(`${i}-${j}`));
+    if (t === "away1") all.filter(([i, j]) => j - i === 1).forEach(([i, j]) => S.sel.add(`${i}-${j}`));
+    if (t === "draws") all.filter(([i, j]) => i === j).forEach(([i, j]) => S.sel.add(`${i}-${j}`));
+    if (t === "top5") all.sort((x, y) => g[y[0]][y[1]] - g[x[0]][x[1]]).slice(0, 5).forEach(([i, j]) => S.sel.add(`${i}-${j}`));
+    pn.querySelectorAll(".cell").forEach(c => c.setAttribute("aria-pressed", S.sel.has(c.dataset.k)));
+    update();
+  });
+  update();
+}
+
+/* ------------------------------------------------------------- saves */
+function panelSaves(P) {
+  const pn = $("#panel");
+  if (!P.sot) { pn.innerHTML = `<p class="note">${P.lg.international ? "The national-team data has scores only, with no shots on target, so saves can't be estimated for internationals." : P.lg.european ? "The Champions League data has scores only, with no shots on target, so saves can't be estimated here. Pick the same clubs in their league to see a saves estimate for a league match." : "There isn't enough shots-on-target data for these teams to estimate saves."}</p>`; return; }
+  const s = P.sot, m = S.match;
+  const lines = [0.5, 1.5, 2.5, 3.5, 4.5, 5.5, 6.5];
+  const rowsFor = (who, lam, idp) => lines.map(l => { const o = 1 - poisCdf(Math.floor(l), lam); return [[`${idp}-${l}-O`, `${who} over ${l}`, o], [`${idp}-${l}-U`, `${who} under ${l}`, 1 - o]]; }).flat();
+  pn.innerHTML = `<p class="note">An estimate: saves = expected shots on target faced minus expected goals conceded, built from each team's shots-on-target record. football-data doesn't record actual saves, so treat these lines with more caution than the goals markets.</p>
+    <div class="cards">
+      <div class="stat"><div class="k">${esc(m.home)} keeper, expected saves</div><div class="v">${s.homeKeeper.toFixed(2)}</div><div class="k">faces ${s.away.toFixed(2)} shots on target</div></div>
+      <div class="stat"><div class="k">${esc(m.away)} keeper, expected saves</div><div class="v">${s.awayKeeper.toFixed(2)}</div><div class="k">faces ${s.home.toFixed(2)} shots on target</div></div>
+      <div class="stat"><div class="k">Total saves in the match</div><div class="v">${(s.homeKeeper + s.awayKeeper).toFixed(2)}</div></div>
+    </div>
+    <details class="grp" open><summary>${esc(m.home)} goalkeeper saves</summary>${marketTable(rowsFor(m.home + " keeper", s.homeKeeper, "sv-h"))}</details>
+    <details class="grp"><summary>${esc(m.away)} goalkeeper saves</summary>${marketTable(rowsFor(m.away + " keeper", s.awayKeeper, "sv-a"))}</details>
+    <details class="grp"><summary>Total match saves</summary>${marketTable(rowsFor("Total saves", s.homeKeeper + s.awayKeeper, "sv-t"))}</details>`;
+  wireOdds(pn);
+}
+
+/* ------------------------------------------------------------- ratings */
+function panelRatings(P) {
+  const L = S.match.L, lg = D.leagues[L];
+  const avg = Math.exp(lg.mu0);
+  const rows = Object.entries(lg.teams).map(([t, v]) => ({ t, ...v, gf: avg * Math.exp(v.att), ga: avg * Math.exp(v.def) }))
+    .sort((a, b) => b.elo - a.elo);
+  $("#panel").innerHTML = `<p class="note">${esc(lg.name)} ranked by Elo${lg.international ? " (countries with at least 10 matches in the last four years)" : lg.european ? " (clubs from the last two Champions League seasons, rated on one Europe-wide scale)" : ""}. Goals for and against are what the Dixon-Coles model expects per game against an average team on a neutral pitch. Recent games count most.</p>
+    <div style="overflow-x:auto"><table class="rt r2"><thead><tr><th>#</th><th>Team</th><th>Elo</th><th>Goals for</th><th>Goals against</th><th>Last 5</th></tr></thead><tbody>
+    ${rows.map((r, i) => `<tr${r.t === S.match.home || r.t === S.match.away ? ' style="font-weight:600"' : ""}><td>${i + 1}</td><td>${esc(r.t)}${r.promoted ? ' <span class="tag">promoted</span>' : ""}</td>
+      <td>${Math.round(r.elo)}</td><td>${r.gf.toFixed(2)}</td><td>${r.ga.toFixed(2)}</td><td>${formHTML(r.form, true)}</td></tr>`).join("")}
+    </tbody></table></div>`;
+}
+
+/* ------------------------------------------------------------- match stats */
+function panelStats(P) {
+  const pn = $("#panel"), m = S.match;
+  const st = matchStats(P, m.neutral);
+  if (!st || !st.length) {
+    pn.innerHTML = `<p class="note">${P.lg.international ? "The national-team data has scores only, so there are no shots, corners or cards to work from."
+      : P.lg.european ? "The Champions League data has scores only. Pick the same clubs in their own league to see their shots, corners and cards numbers."
+      : "There isn't enough match-statistics data for these teams."}</p>`;
+    return;
+  }
+  const f1 = v => v.toFixed(v < 1 ? 2 : 1);
+  const lines = (mean, n) => { const c = Math.floor(mean) + 0.5, out = []; for (let d = -n; d <= n; d++) if (c + d > 0) out.push(c + d); return out; };
+  const ou = (pmf, who, id, ls) => ls.map(l => { const o = overLine(pmf, l); return [[`${id}-${l}-O`, `${who} over ${l}`, o], [`${id}-${l}-U`, `${who} under ${l}`, 1 - o]]; }).flat();
+  pn.innerHTML = `<p class="note">What the model expects from each team in this match, built from their record for and against with recent games counting most. Cards also depend heavily on the referee, which isn't in the data, and the team news sliders don't change these numbers.</p>
+    <div style="overflow-x:auto"><table class="rt"><thead><tr><th>Expected</th><th>${esc(m.home)}</th><th>${esc(m.away)}</th><th>Match total</th></tr></thead><tbody>
+    ${st.map(x => `<tr><td>${esc(x.label)}</td><td>${f1(x.h)}</td><td>${f1(x.a)}</td><td><b>${f1(x.h + x.a)}</b></td></tr>`).join("")}</tbody></table></div>
+    <div style="height:14px"></div>
+    ${st.map((x, i) => x.k === "rc"
+      ? `<details class="grp"><summary>${esc(x.label)}</summary>${marketTable([[`ms-rc-T-O`, "A red card in the match", overLine(x.pt, 0.5)], [`ms-rc-T-U`, "No red card", 1 - overLine(x.pt, 0.5)],
+          [`ms-rc-H-O`, `${m.home} get a red card`, overLine(x.ph, 0.5)], [`ms-rc-A-O`, `${m.away} get a red card`, overLine(x.pa, 0.5)]])}</details>`
+      : `<details class="grp"${i === 2 ? " open" : ""}><summary>${esc(x.label)}</summary>
+          ${marketTable(ou(x.pt, "Total", `ms-${x.k}-T`, lines(x.h + x.a, 2)).concat(ou(x.ph, m.home, `ms-${x.k}-H`, lines(x.h, 1)), ou(x.pa, m.away, `ms-${x.k}-A`, lines(x.a, 1))))}</details>`).join("")}`;
+  wireOdds(pn);
+}
+
+/* ------------------------------------------------------------- model check */
+function calibSVG(c) {
+  const W = 420, H = 300, pad = 62, sx = v => pad + v * (W - pad - 24), sy = v => H - 44 - v * (H - 44 - 12);
+  const ticks = [0, .25, .5, .75, 1];
+  return `<svg class="calib" viewBox="0 0 ${W} ${H}" role="img" aria-label="Calibration chart: predicted versus actual frequency">
+    ${ticks.map(t => `<line x1="${sx(0)}" x2="${sx(1)}" y1="${sy(t)}" y2="${sy(t)}" stroke="var(--line)"/><text x="${pad - 6}" y="${sy(t) + 4}" text-anchor="end">${t * 100}%</text><text x="${sx(t)}" y="${H - 26}" text-anchor="middle">${t * 100}%</text>`).join("")}
+    <line x1="${sx(0)}" y1="${sy(0)}" x2="${sx(1)}" y2="${sy(1)}" stroke="var(--draw)" stroke-dasharray="4 4"/>
+    <polyline fill="none" stroke="var(--sky)" stroke-width="2" points="${c.map(b => `${sx(b.predicted)},${sy(b.actual)}`).join(" ")}"/>
+    ${c.map(b => `<circle cx="${sx(b.predicted)}" cy="${sy(b.actual)}" r="4" fill="var(--sky)"><title>${b.bin}: predicted ${pct(b.predicted)}, happened ${pct(b.actual)} (${b.n} cases)</title></circle>`).join("")}
+    <text x="${W / 2}" y="${H - 4}" text-anchor="middle">Model's chance</text>
+    <text x="12" y="${H / 2}" text-anchor="middle" transform="rotate(-90 12 ${H / 2})">How often it happened</text>
+  </svg>`;
+}
+const modelRows = o => {
+  const best = Math.min(...Object.values(o).map(v => v.logloss));
+  return Object.entries(o).map(([k, v]) => `<tr><td>${esc(k)}</td><td class="${v.logloss === best ? "good" : ""}">${v.logloss.toFixed(4)}</td><td>${v.brier.toFixed(4)}</td><td>${(v.accuracy * 100).toFixed(1)}%</td></tr>`).join("");
+};
+const MHEAD = `<thead><tr><th>Model</th><th>Log loss</th><th>Brier</th><th>Picked winner</th></tr></thead>`;
+function goalsTable(b, withBook) {
+  const row = (label, o) => o ? `<tr><td>${label}</td><td>${o["Dixon-Coles"].toFixed(4)}</td>${withBook ? `<td>${o.Bookmakers !== undefined ? o.Bookmakers.toFixed(4) : "–"}</td>` : ""}<td>${o["Base rate"].toFixed(4)}</td></tr>` : "";
+  const weak = [["over 2.5", b.over25], ["both teams to score", b.btts]].filter(([, o]) => o && o["Dixon-Coles"] >= o["Base rate"]).map(([n]) => n);
+  return `<h3 class="sec">Over/under 2.5 and both teams to score</h3>
+    <table class="rt"><thead><tr><th>Market (log loss)</th><th>Dixon-Coles</th>${withBook ? "<th>Bookmakers</th>" : ""}<th>Base rate</th></tr></thead><tbody>
+    ${row("Over 2.5", b.over25)}${row("Both teams to score", b.btts)}</tbody></table>
+    <p class="note" style="margin-top:8px">Base rate means always quoting the average. ${weak.length
+      ? `<b>Here the model did no better than the base rate on ${weak.join(" and ")}, so don't lean on those numbers for this competition.</b>`
+      : "The model beat it on both, but by a small margin: goals markets are hard to call."}</p>`;
+}
+
+function panelCheck() {
+  const pn = $("#panel");
+  const tabs = [["club", "Leagues", D.backtest], ["cl", "Champions League", D.backtest_cl], ["int", "National teams", D.backtest_int], ["live", "Live record", true]].filter(t => t[2]);
+  if (!tabs.some(t => t[0] === S.check)) S.check = tabs[0][0];
+  let html = `<div class="subtabs">${tabs.map(([k, v]) => `<button class="chip" type="button" data-c="${k}" aria-pressed="${S.check === k}">${v}</button>`).join("")}</div>`;
+  if (S.check === "live") {
+    const tr = D.track;
+    if (tr && tr.settled) {
+      const mrow = Object.entries(tr.models).map(([k, v]) => `<tr><td>${esc(k)}</td><td>${v.logloss.toFixed(4)}</td><td>${(v.accuracy * 100).toFixed(1)}%</td></tr>`).join("");
+      html += `<h3 class="sec">Live record: ${tr.settled} predictions settled</h3>
+        <p class="note">Predictions this tool logged before kick-off, scored against the real results. This is the honest test, because the model never saw these games.</p>
+        <table class="rt"><thead><tr><th>Model</th><th>Log loss</th><th>Picked winner</th></tr></thead><tbody>${mrow}</tbody></table>
+        <div style="overflow-x:auto;margin-top:10px"><table class="rt r2"><thead><tr><th>Date</th><th>Match</th><th>Score</th><th>Home</th><th>Draw</th><th>Away</th><th>Top pick</th></tr></thead><tbody>
+        ${tr.recent.map(r => { const k = r.ens.indexOf(Math.max(...r.ens)), ok = "HDA"[k] === r.res;
+          return `<tr><td>${esc(r.date)}</td><td>${esc(r.home)} v ${esc(r.away)}</td><td>${esc(r.score)} <span class="res ${r.res}">${r.res}</span></td>
+            <td>${pct(r.ens[0])}</td><td>${pct(r.ens[1])}</td><td>${pct(r.ens[2])}</td><td class="${ok ? "ok" : "miss"}">${"HDA"[k]} ${ok ? "✓" : "✗"}</td></tr>`; }).join("")}
+        </tbody></table></div>`;
+    } else html += `<h3 class="sec">Live record</h3><p class="note">Nothing settled yet. Every update logs predictions for fixtures in the next 10 days; once results arrive they're scored here.</p>`;
+  }
+  if (S.check === "club") {
+    const bt = D.backtest;
+    const vb = Object.entries(bt.value_bets).map(([k, v]) => `<tr><td>${esc(k)}</td><td>${v.bets.toLocaleString()}</td><td class="${v.roi > 0 ? "good" : ""}">${v.roi === null ? "–" : (v.roi >= 0 ? "+" : "") + (v.roi * 100).toFixed(1) + "%"}</td></tr>`).join("");
+    const leagues = Object.entries(bt.by_league).map(([L, v]) => `<tr><td>${esc(D.leagues[L] ? D.leagues[L].name : L)}</td>${["Dixon-Coles", "Elo", "Ensemble", "Bookmakers"].map(k => `<td>${v[k].toFixed(4)}</td>`).join("")}</tr>`).join("");
+    html += `<h3 class="sec">League backtest: ${bt.seasons.join(", ")}</h3>
+      <p class="note">Each week of those seasons was predicted using only matches played before it, the same way the tool works live. ${bt.with_odds.toLocaleString()} matches had bookmaker odds to compare against.
+      Log loss rewards confident correct predictions and punishes confident wrong ones; lower is better. Always picking the home team would get ${(bt.home_win_rate * 100).toFixed(1)}% right.</p>
+      <table class="rt">${MHEAD}<tbody>${modelRows(bt.models)}</tbody></table>
+      <p class="note" style="margin-top:8px">The bookmakers' line beating the models is normal: their prices include team news the models can't see. The value-bet test below is what matters for betting.</p>
+      ${goalsTable(bt, true)}
+      ${bt.match_stats ? `<h3 class="sec">Shots, corners and cards: ${bt.match_stats.seasons.join(", ")}</h3>
+      <p class="note">Each month was predicted using only earlier matches. "Base rate" means always quoting the league's usual over rate; the model has to beat it to be worth using. "Typical miss" is how far the predicted match total was from the real one, on average.</p>
+      <div style="overflow-x:auto"><table class="rt"><thead><tr><th>Statistic</th><th>Line tested</th><th>Model log loss</th><th>Base rate</th><th>Typical miss</th><th>Verdict</th></tr></thead><tbody>
+      ${Object.values(bt.match_stats.stats).map(v => { const gain = (v.base - v.model) / v.base * 100;
+        return `<tr><td>${esc(v.label)}</td><td>over ${v.line}</td><td>${v.model.toFixed(4)}</td><td>${v.base.toFixed(4)}</td><td>${v.mae_model.toFixed(2)}</td>
+          <td class="${gain >= 1 ? "good" : ""}">${gain >= 3 ? "Useful" : gain >= 1 ? "Slightly useful" : gain > 0.2 ? "Barely better than average" : "No better than average"}</td></tr>`; }).join("")}
+      </tbody></table></div>` : ""}
+      <h3 class="sec">Value-bet simulation</h3>
+      <p class="note">1 unit on every home/draw/away price where the model's edge was at least ${(D.settings.value_edge * 100).toFixed(0)}%, at the best odds available. Return on investment over the backtest:</p>
+      <table class="rt"><thead><tr><th>Model</th><th>Bets</th><th>ROI</th></tr></thead><tbody>${vb}</tbody></table>
+      <h3 class="sec">Calibration</h3>
+      <p class="note">When the ensemble says 40%, does it happen about 40% of the time? Points near the dashed line mean the probabilities can be trusted.</p>
+      ${bt.calibration ? calibSVG(bt.calibration) : ""}
+      <h3 class="sec">Log loss by league</h3>
+      <div style="overflow-x:auto"><table class="rt"><thead><tr><th>League</th><th>Dixon-Coles</th><th>Elo</th><th>Ensemble</th><th>Bookmakers</th></tr></thead><tbody>${leagues}</tbody></table></div>`;
+  }
+  if (S.check === "cl") {
+    const b = D.backtest_cl;
+    html += `<h3 class="sec">Champions League backtest: ${b.seasons.join(", ")}</h3>
+      <p class="note">${b.matches.toLocaleString()} matches, each predicted using only earlier results. Clubs are rated on one scale built from the five leagues and European matches together, so clubs from other countries are judged only on their European games and are less certain.
+      Always picking the home team would get ${(b.home_win_rate * 100).toFixed(1)}% right. There are no bookmaker odds or shots in this data, so there's no market comparison and no saves estimate.</p>
+      <table class="rt">${MHEAD}<tbody>${modelRows(b.models)}</tbody></table>
+      ${goalsTable(b, false)}
+      <h3 class="sec">Calibration</h3>${b.calibration ? calibSVG(b.calibration) : ""}`;
+  }
+  if (S.check === "int") {
+    const b = D.backtest_int;
+    html += `<h3 class="sec">National teams backtest: ${esc(b.from)} to ${esc(b.to)}</h3>
+      <p class="note">${b.matches.toLocaleString()} internationals, each predicted using only earlier matches. ${b.competitive.toLocaleString()} were competitive and the rest friendlies.
+      Always picking the home side would get ${(b.home_win_rate * 100).toFixed(1)}% right. There are no bookmaker odds in this data, so there is no comparison with the market.</p>
+      <table class="rt">${MHEAD}<tbody>${modelRows(b.models)}</tbody></table>
+      <h3 class="sec">Competitive matches only</h3><table class="rt">${MHEAD}<tbody>${modelRows(b.competitive_only)}</tbody></table>
+      <h3 class="sec">Friendlies only</h3>
+      <p class="note">Friendlies are harder to call: coaches rotate and experiment, so treat those predictions with more caution.</p>
+      <table class="rt">${MHEAD}<tbody>${modelRows(b.friendlies_only)}</tbody></table>
+      ${goalsTable(b, false)}
+      <h3 class="sec">Calibration</h3>${b.calibration ? calibSVG(b.calibration) : ""}`;
+  }
+  pn.innerHTML = html;
+  pn.querySelectorAll(".subtabs .chip").forEach(c => c.onclick = () => { S.check = c.dataset.c; panelCheck(); });
+}
+
+boot();
+</script>
+</body>
+</html>
