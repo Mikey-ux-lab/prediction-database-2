@@ -23,15 +23,15 @@ To update by hand at any time, double-click **update.bat**.
 
 ## Hosting it on GitHub (free, updates itself)
 
-GitHub can run the update twice a day on its own servers and publish the page, so no laptop is needed.
+GitHub can run the update every hour on its own servers and publish the page, so no laptop is needed.
 
 1. Create a **public** repository on github.com and upload every file and folder from this project, including the `.github` folder. Do not upload `api_key.txt`.
 2. In the repository, open **Settings → Pages** and set **Source** to **GitHub Actions**.
 3. Open the **Actions** tab, choose **Update predictions**, and click **Run workflow**. After a few minutes the page is live at `https://<your-username>.github.io/<repository-name>/`.
 4. To use a football-data.org key, open **Settings → Secrets and variables → Actions → New repository secret**, name it `FOOTBALL_DATA_KEY`, and paste the key as the value. Never put a key in a file in a public repository.
-5. To add national-team results, open `data/my_matches.csv` on GitHub, click the pencil, add rows and commit. That starts an update on its own.
+5. National-team results and fixtures arrive on their own from ESPN's feed (see below). To add a match the feed lacks, open `data/my_matches.csv` on GitHub, click the pencil, add rows and commit. That starts an update on its own.
 
-The workflow is in `.github/workflows/update.yml`. It runs at 05:17 and 17:17 GMT; GitHub sometimes starts scheduled runs late.
+The workflow is in `.github/workflows/update.yml`. It runs every hour at 17 minutes past; GitHub sometimes starts scheduled runs late or skips one when its servers are busy. The slow accuracy tests run once a day, in the 05:17 GMT run.
 
 ## Daily league and Champions League data (free key)
 
@@ -43,9 +43,23 @@ Without a key, league results come from a file that refreshes about weekly, and 
 
 Keep the key private. Kick-off times from this source are shown in GMT, which is Ghana time.
 
+## National teams: the automatic feed
+
+Every update reads ESPN's public scores feed for national-team results and the next three weeks of fixtures, with kick-off times in GMT. It needs no key or account. It covers the UEFA Nations League, friendlies, Africa Cup of Nations and its qualifiers, the CONCACAF Nations League, World Cup and its qualifiers, the Euros and their qualifiers, Copa América, the Gold Cup and the Asian Cup, whenever each one is in season.
+
+What it saves goes into `data\espn_international.json`. A line under "Any two teams" on the page shows when the feed was last read and how many results and fixtures came from it.
+
+Three things to know:
+
+- The feed is unofficial. ESPN publishes it for its own website and could change or stop it without notice. If that happens the update carries on with what was already saved, and you can fall back on the spreadsheet below.
+- A result appears on the page at the first update after the final whistle, so up to about an hour later on GitHub.
+- Scores include extra time but not penalty shoot-outs, the same as the main dataset.
+
+Youth teams, clubs and regional sides that appear among the friendlies are left out.
+
 ## National teams: your spreadsheet
 
-No free service gives daily national-team results, so you add them to `data\my_matches.csv`. Open it in Excel, add one row per match, save it (keep the CSV format), then run **update.bat**.
+Use `data\my_matches.csv` for any match the feed doesn't have. Open it in Excel, add one row per match, save it (keep the CSV format), then run **update.bat**. If the feed already has the match, your row is ignored, so there is no double counting.
 
 | Column | What to type |
 |---|---|
@@ -89,7 +103,8 @@ Every run saves predictions for fixtures in the next 10 days in `data\prediction
 | Next round of league fixtures with odds | football-data.co.uk | Fridays and Tuesdays |
 | League and Champions League results and fixtures | football-data.org (needs your free key) | Every update |
 | League schedule and scores, when there is no key | `github.com/openfootball/football.json` | Weekly |
-| National team results | `github.com/martj42/international_results`, plus your spreadsheet | After each international window |
+| National team history | `github.com/martj42/international_results` | After each international window |
+| National team results and fixtures, day to day | ESPN's public scores feed (unofficial, no key), plus your spreadsheet | Every update |
 | Bundled league history | `github.com/datasets/football-datasets`, `github.com/xgabora/Club-Football-Match-Data-2000-2025` | One-off |
 | Bundled Champions League history | `github.com/openfootball/champions-league` | One-off |
 
@@ -114,6 +129,7 @@ After changing one, run `python model.py` and compare the backtest log loss. Low
 |---|---|
 | `api_key.txt` | Your football-data.org key (optional) |
 | `data\my_matches.csv` | National-team results and fixtures you add |
+| `data\espn_international.json` | National-team results and fixtures saved from ESPN's feed |
 | `data\country_names.txt` | The country spellings the model accepts |
 | `data\history.csv` | Every league match since 2006/07, bundled |
 | `data\champions_league.csv` | Champions League matches 2011/12 to 2025/26, bundled |
