@@ -1,46 +1,46 @@
 {
  "from": "2023-10-07",
  "to": "2026-10-06",
- "matches": 3265,
- "competitive": 2476,
+ "matches": 3266,
+ "competitive": 2477,
  "elo_logit": [
   -0.7272,
   0.2667,
   0.5095
  ],
- "home_win_rate": 0.4726,
+ "home_win_rate": 0.4724,
  "models": {
   "Dixon-Coles": {
    "logloss": 0.8585,
    "brier": 0.5038,
-   "accuracy": 0.6067
+   "accuracy": 0.6069
   },
   "Elo": {
-   "logloss": 0.8603,
-   "brier": 0.5058,
-   "accuracy": 0.6064
+   "logloss": 0.8604,
+   "brier": 0.5059,
+   "accuracy": 0.6066
   },
   "Ensemble": {
    "logloss": 0.854,
    "brier": 0.5012,
-   "accuracy": 0.6089
+   "accuracy": 0.609
   }
  },
  "competitive_only": {
   "Dixon-Coles": {
-   "logloss": 0.8482,
+   "logloss": 0.8481,
    "brier": 0.497,
-   "accuracy": 0.6151
+   "accuracy": 0.6153
   },
   "Elo": {
-   "logloss": 0.8526,
-   "brier": 0.501,
-   "accuracy": 0.6103
+   "logloss": 0.8527,
+   "brier": 0.5011,
+   "accuracy": 0.6104
   },
   "Ensemble": {
    "logloss": 0.8453,
    "brier": 0.4956,
-   "accuracy": 0.6155
+   "accuracy": 0.6157
   }
  },
  "friendlies_only": {
@@ -61,7 +61,7 @@
   }
  },
  "over25": {
-  "Dixon-Coles": 0.6768,
+  "Dixon-Coles": 0.6767,
   "Base rate": 0.6931
  },
  "btts": {
@@ -79,13 +79,13 @@
    "bin": "10-20%",
    "predicted": 0.1516,
    "actual": 0.133,
-   "n": 1759
+   "n": 1760
   },
   {
    "bin": "20-30%",
    "predicted": 0.2567,
-   "actual": 0.2572,
-   "n": 2733
+   "actual": 0.2571,
+   "n": 2734
   },
   {
    "bin": "30-40%",
@@ -95,9 +95,9 @@
   },
   {
    "bin": "40-50%",
-   "predicted": 0.4491,
-   "actual": 0.4706,
-   "n": 748
+   "predicted": 0.449,
+   "actual": 0.4713,
+   "n": 749
   },
   {
    "bin": "50-60%",
@@ -113,15 +113,15 @@
   },
   {
    "bin": "70-80%",
-   "predicted": 0.7481,
-   "actual": 0.7619,
-   "n": 441
+   "predicted": 0.7479,
+   "actual": 0.7614,
+   "n": 440
   },
   {
    "bin": "80-90%",
-   "predicted": 0.8458,
-   "actual": 0.9055,
-   "n": 328
+   "predicted": 0.8456,
+   "actual": 0.9058,
+   "n": 329
   },
   {
    "bin": "90-100%",
