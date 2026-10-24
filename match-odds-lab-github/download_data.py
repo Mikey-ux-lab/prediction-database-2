@@ -27,7 +27,7 @@ import sys
 import time
 import urllib.error
 import urllib.request
-from datetime import date, datetime
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
 BASE = "https://www.football-data.co.uk/mmz4281/{season}/{league}.csv"
@@ -86,6 +86,34 @@ SCHEDULE_DIR = HERE / "data" / "schedule"
 NAMES_FILE = HERE / "data" / "team_names.json"
 INTL_FILE = HERE / "data" / "international.csv"
 KEY_FILE = HERE / "api_key.txt"
+
+# National teams: ESPN's public scores feed. It needs no key, but it is unofficial,
+# so everything here is written to fail quietly and leave the last saved file in place.
+ESPN_URL = "https://site.api.espn.com/apis/site/v2/sports/soccer/{slug}/scoreboard"
+ESPN_FILE = HERE / "data" / "espn_international.json"
+ESPN_COMPS = {   # ESPN competition -> the tournament name the model uses
+    "uefa.nations": "UEFA Nations League",
+    "fifa.friendly": "Friendly",
+    "caf.nations_qual": "African Cup of Nations qualification",
+    "caf.nations": "African Cup of Nations",
+    "concacaf.nations.league": "CONCACAF Nations League",
+    "fifa.world": "FIFA World Cup",
+    "fifa.worldq.uefa": "FIFA World Cup qualification",
+    "fifa.worldq.caf": "FIFA World Cup qualification",
+    "fifa.worldq.conmebol": "FIFA World Cup qualification",
+    "fifa.worldq.concacaf": "FIFA World Cup qualification",
+    "fifa.worldq.afc": "FIFA World Cup qualification",
+    "uefa.euro": "UEFA Euro",
+    "uefa.euroq": "UEFA Euro qualification",
+    "conmebol.america": "Copa América",
+    "concacaf.gold": "Gold Cup",
+    "afc.asian.cup": "AFC Asian Cup",
+}
+ESPN_DAYS_BACK = 75      # the furthest back the first run looks
+ESPN_DAYS_AHEAD = 21     # how far ahead fixtures are collected
+ESPN_RECHECK_DAYS = 3    # recent days are re-read on every run, in case a score was corrected
+ESPN_FUTURE_HOURS = 20   # upcoming days are re-read at most this often
+ESPN_NOT_PLAYED = ("POSTPONED", "CANCEL", "ABANDON", "SUSPEND", "FORFEIT", "DELAYED")
 
 
 def current_start_year(today=None):
@@ -318,6 +346,167 @@ def download_international():
     print(f"Saved {max(text.count(chr(10)) - 1, 0)} international results -> {INTL_FILE}")
 
 
+def espn_get(slug, day=None):
+    """One scoreboard page as a dict, or None. `day` is YYYYMMDD or a YYYYMMDD-YYYYMMDD range."""
+    # The extra number stops ESPN's servers handing back an old saved copy:
+    # without it, matches that finished days ago can still come back as "scheduled".
+    url = ESPN_URL.format(slug=slug) + f"?limit=1000&cb={int(time.time())}"
+    if day:
+        url += f"&dates={day}"
+    for attempt in range(2):
+        try:
+            req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0", "Accept": "application/json"})
+            with urllib.request.urlopen(req, timeout=30) as resp:
+                data = json.loads(resp.read().decode("utf-8"))
+            return data if isinstance(data, dict) else None
+        except urllib.error.HTTPError as e:
+            if e.code in (400, 404):
+                return None
+            time.sleep(2)
+        except Exception:
+            time.sleep(2)
+    return None
+
+
+def espn_events(data, slug):
+    """Pull the matches out of a scoreboard page. Anything oddly shaped is skipped."""
+    out = {}
+    for ev in data.get("events") or []:
+        try:
+            comp = ev["competitions"][0]
+            when = datetime.strptime((comp.get("date") or ev["date"])[:16], "%Y-%m-%dT%H:%M")
+            sides = {c["homeAway"]: c for c in comp["competitors"]}
+            home, away = sides["home"], sides["away"]
+            st = (comp.get("status") or ev.get("status") or {}).get("type") or {}
+            name = (st.get("name") or "").upper()
+            if any(word in name for word in ESPN_NOT_PLAYED):
+                state = "off"
+            elif st.get("completed") and st.get("state") == "post":
+                state = "played"
+            else:
+                state = "upcoming"
+            m = {
+                "date": when.date().isoformat(), "time": when.strftime("%H:%M"),
+                "home": home["team"]["displayName"].strip(), "away": away["team"]["displayName"].strip(),
+                "state": state, "tournament": ESPN_COMPS[slug], "slug": slug,
+                "neutral": bool(comp.get("neutralSite")),
+                "country": (((comp.get("venue") or {}).get("address") or {}).get("country") or "").strip(),
+            }
+            if state == "played":
+                m["hg"], m["ag"] = int(home["score"]), int(away["score"])
+            out[str(ev["id"])] = m
+        except (KeyError, ValueError, TypeError, IndexError):
+            continue
+    return out
+
+
+def _espn_day(s):
+    try:
+        return datetime.strptime((s or "")[:10], "%Y-%m-%d").date()
+    except ValueError:
+        return None
+
+
+def download_espn(today=None):
+    """National-team results and fixtures from ESPN, added to data/espn_international.json."""
+    today = today or datetime.now(timezone.utc).date()
+    try:
+        store = json.loads(ESPN_FILE.read_text(encoding="utf-8"))
+        matches, seen = store["matches"], store["seen"]
+    except (OSError, ValueError, KeyError):
+        matches, seen = {}, {}
+
+    # Start where the main national-team file stops.
+    start = today - timedelta(days=ESPN_DAYS_BACK)
+    try:
+        with open(INTL_FILE, encoding="utf-8", newline="") as f:
+            last = max(r["date"] for r in csv.DictReader(f) if (r.get("home_score") or "").strip().isdigit())
+        start = max(start, date.fromisoformat(last) - timedelta(days=3))
+    except (OSError, ValueError, KeyError):
+        pass
+    start = min(start, today - timedelta(days=ESPN_RECHECK_DAYS))
+    end = today + timedelta(days=ESPN_DAYS_AHEAD)
+    now = time.time()
+    requests = 0
+    active = []
+    span_works = None   # does ESPN answer a whole span of days in one request? Unknown until tried.
+
+    for slug in ESPN_COMPS:
+        head = espn_get(slug)
+        requests += 1
+        if not head or not head.get("leagues"):
+            continue
+        league = head["leagues"][0]
+        season = league.get("season") or {}
+        s0, s1 = _espn_day(season.get("startDate")), _espn_day(season.get("endDate"))
+        if (s1 and s1 < start) or (s0 and s0 > end):
+            continue   # this competition is between editions
+        active.append(slug)
+        got = espn_events(head, slug)
+
+        # Some competitions list the exact days with matches. Use that to skip empty days.
+        cal = league.get("calendar") or []
+        match_days = {_espn_day(c) for c in cal} if cal and all(isinstance(c, str) for c in cal) else None
+        days = [start + timedelta(days=i) for i in range((end - start).days + 1)]
+        if match_days:
+            # ESPN's days run on US time, so a match can sit one day either side.
+            days = [d for d in days if any(d + timedelta(days=k) in match_days for k in (-1, 0, 1))]
+        log_seen = seen.setdefault(slug, {})
+        todo = []
+        for d in days:
+            age = now - log_seen.get(d.isoformat(), 0)
+            if d < today - timedelta(days=ESPN_RECHECK_DAYS):
+                if d.isoformat() in log_seen and log_seen[d.isoformat()] > 0:
+                    continue          # an old day we already have
+            elif d > today + timedelta(days=1) and age < ESPN_FUTURE_HOURS * 3600:
+                continue              # fixtures further ahead change rarely
+            todo.append(d)
+
+        # One request for the whole span if ESPN allows it, otherwise day by day.
+        whole = None
+        if len(todo) > 3 and span_works is not False:
+            whole = espn_get(slug, f"{todo[0]:%Y%m%d}-{todo[-1]:%Y%m%d}")
+            requests += 1
+            if whole is None:
+                span_works = False
+        span = espn_events(whole, slug) if whole else {}
+        if len({m["date"] for m in span.values()}) > 1:
+            span_works = True   # ESPN really did return several days at once
+        if whole is not None and span_works:
+            got.update(span)
+            for d in todo:
+                log_seen[d.isoformat()] = now
+        else:
+            for d in todo:
+                page = espn_get(slug, f"{d:%Y%m%d}")
+                requests += 1
+                if page is None:
+                    continue
+                got.update(espn_events(page, slug))
+                log_seen[d.isoformat()] = now
+                time.sleep(0.15)
+        matches.update(got)
+
+    if not active:
+        print("ESPN national-team feed: no answer, keeping what was saved before")
+        return
+    # Tidy up: forget fixtures that never happened and anything too old to matter.
+    cutoff = (today - timedelta(days=400)).isoformat()
+    stale = (today - timedelta(days=2)).isoformat()
+    matches = {k: m for k, m in matches.items()
+               if m["date"] >= cutoff and not (m["state"] != "played" and m["date"] < stale)}
+    seen = {s: {d: t for d, t in days.items() if d >= cutoff} for s, days in seen.items()}
+    ESPN_FILE.parent.mkdir(parents=True, exist_ok=True)
+    ESPN_FILE.write_text(json.dumps({
+        "updated": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M"),
+        "matches": dict(sorted(matches.items(), key=lambda kv: (kv[1]["date"], kv[1]["time"], kv[0]))),
+        "seen": seen}, indent=1, ensure_ascii=False), encoding="utf-8")
+    played = sum(m["state"] == "played" for m in matches.values())
+    coming = sum(m["state"] == "upcoming" for m in matches.values())
+    print(f"ESPN national-team feed: {played} results and {coming} upcoming matches saved "
+          f"({len(active)} competitions in season, {requests} requests) -> {ESPN_FILE}")
+
+
 _STRIP = re.compile(r"\b(FC|AFC|CF|SC|AC|AS|SS|SSC|US|UD|CA|RC|RCD|OGC|AJ|ES|SV|VfB|VfL|TSG|BC|CFC|OSC|SCO|1\.|\d{2,4})\b", re.I)
 
 
@@ -432,6 +621,7 @@ def main():
     download_schedule(cur)
     download_fixtures()
     download_international()
+    download_espn()
     merge()
     build_fixtures()
     return 0
