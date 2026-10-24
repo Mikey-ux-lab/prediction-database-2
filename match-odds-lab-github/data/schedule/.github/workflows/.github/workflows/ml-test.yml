@@ -1,0 +1,50 @@
+name: Machine learning test
+
+# Runs ml/ml_starter.py on GitHub's servers when you press "Run workflow"
+# on the Actions tab. It only prints a report; the page is not changed.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ml-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Find the project folder
+        run: |
+          FILE=$(find . -path "*/ml/ml_starter.py" -not -path "./.git/*" | head -1)
+          if [ -z "$FILE" ]; then
+            echo "ml/ml_starter.py is not in this repository. Put it in a folder called ml next to model.py."
+            exit 1
+          fi
+          DIR=$(dirname "$(dirname "$FILE")")
+          if [ ! -f "$DIR/download_data.py" ]; then echo "download_data.py should be next to the ml folder"; exit 1; fi
+          echo "PROJECT=$DIR" >> "$GITHUB_ENV"
+
+      - name: Install packages
+        run: pip install numpy scipy pandas scikit-learn lightgbm
+
+      - name: Fetch the latest results
+        working-directory: ${{ env.PROJECT }}
+        env:
+          FOOTBALL_DATA_KEY: ${{ secrets.FOOTBALL_DATA_KEY }}
+        run: python download_data.py --current
+
+      - name: Train and test the learning model
+        working-directory: ${{ env.PROJECT }}
+        run: |
+          python ml/ml_starter.py | tee ml_report.txt
+          {
+            echo "## Machine learning test"
+            echo '```'
+            cat ml_report.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
