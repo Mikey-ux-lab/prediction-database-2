@@ -37,6 +37,7 @@ from datetime import date, datetime
 from pathlib import Path
 
 import difflib
+import unicodedata
 
 import numpy as np
 from scipy.optimize import minimize
@@ -49,6 +50,7 @@ FIXTURES_FILE = DATA / "fixtures.csv"
 INTL_FILE = DATA / "international.csv"
 MY_FILE = DATA / "my_matches.csv"          # national-team results and fixtures you type in
 COUNTRIES_FILE = DATA / "country_names.txt"
+ESPN_FILE = DATA / "espn_international.json"   # written by download_data.py
 CL_FILE = DATA / "champions_league.csv"
 BACKTEST_CL_FILE = DATA / "backtest_champions_league.json"
 LOG_FILE = DATA / "prediction_log.csv"
@@ -101,6 +103,7 @@ CL_BACKTEST_SEASONS = 3
 
 WARNINGS = []             # problems worth showing on the page (e.g. a misspelt country)
 SHEET = {"results": 0, "fixtures": 0, "already_known": 0}   # what your spreadsheet contributed
+FEED = {"results": 0, "fixtures": 0, "already_known": 0, "updated": None, "unknown": []}   # what the ESPN feed contributed
 
 # Match statistics for league games: key -> (home column, away column, label, usual total line)
 STATS = {
@@ -713,7 +716,7 @@ def read_my_matches(names, existing):
     delim = ";" if first.count(";") > first.count(",") else ","   # Excel uses ; in some regions
     have = defaultdict(set)
     for d, h, a, *_ in existing:
-        have[(h, a)].add(date.fromisoformat(d).toordinal())
+        have[frozenset((h, a))].add(date.fromisoformat(d).toordinal())
     lower = {n.lower(): n for n in names}
     for alt, real in MY_ALIASES.items():   # other common spellings
         if real in names:
@@ -747,6 +750,8 @@ def read_my_matches(names, existing):
             if d >= today:
                 fixtures.append({"date": d.isoformat(), "home_team": h, "away_team": a,
                                  "tournament": tour, "neutral": "TRUE" if neutral else "FALSE"})
+            elif any(abs(d.toordinal() - x) <= 2 for x in have[frozenset((h, a))]):
+                SHEET["already_known"] += 1   # the result has arrived from the feed or the main dataset
             else:
                 WARNINGS.append(f"my_matches.csv row {n}: {h} v {a} on {d.isoformat()} is in the past but has no score. Type the score in, or delete the row.")
             continue
@@ -755,14 +760,95 @@ def read_my_matches(names, existing):
         except ValueError:
             WARNINGS.append(f"my_matches.csv row {n}: the score '{hs}-{as_}' isn't two whole numbers.")
             continue
-        if any(abs(d.toordinal() - x) <= 2 for x in have[(h, a)]):
+        if any(abs(d.toordinal() - x) <= 2 for x in have[frozenset((h, a))]):
             SHEET["already_known"] += 1
-            continue  # the main dataset has caught up with this match
-        have[(h, a)].add(d.toordinal())
+            continue  # the main dataset or the ESPN feed already has this match
+        have[frozenset((h, a))].add(d.toordinal())
         results.append((d.isoformat(), h, a, hg, ag, tour, neutral))
     SHEET["results"], SHEET["fixtures"] = len(results), len(fixtures)
     log(f"Your spreadsheet: {len(results)} new results, {len(fixtures)} upcoming fixtures, "
         f"{SHEET['already_known']} already in the main data")
+    return results, fixtures
+
+
+ESPN_ALIASES = {   # ESPN's spelling -> the model's, where tidying the text isn't enough
+    "usa": "United States", "kyrgyz republic": "Kyrgyzstan", "congo dr": "DR Congo", "dr congo": "DR Congo",
+    "cape verde islands": "Cape Verde", "cabo verde": "Cape Verde", "czechia": "Czech Republic",
+    "turkiye": "Turkey", "china pr": "China", "chinese taipei": "Taiwan", "hong kong china": "Hong Kong",
+    "brunei darussalam": "Brunei", "east timor": "Timor-Leste", "swaziland": "Eswatini",
+    "the gambia": "Gambia", "us virgin islands": "United States Virgin Islands",
+    "sao tome e principe": "São Tomé and Príncipe", "macao": "Macau", "korea republic": "South Korea",
+    "korea dpr": "North Korea", "ir iran": "Iran", "ireland": "Republic of Ireland",
+    "rep ireland": "Republic of Ireland", "cote d ivoire": "Ivory Coast", "bosnia herzegovina": "Bosnia and Herzegovina",
+    "congo republic": "Congo", "republic of congo": "Congo", "st kitts and nevis": "Saint Kitts and Nevis",
+    "curacao": "Curaçao", "myanmar burma": "Myanmar", "palestinian territories": "Palestine",
+}
+
+
+def _plain(name):
+    """Lower case, no accents or punctuation, 'St.' as 'saint', '&' as 'and'."""
+    t = unicodedata.normalize("NFKD", name or "")
+    t = "".join(c for c in t if not unicodedata.combining(c)).lower().replace("&", " and ")
+    t = "".join(c if c.isalnum() else " " for c in t)
+    words = ["saint" if w == "st" else w for w in t.split()]
+    return " ".join(words)
+
+
+def read_espn(names, existing):
+    """Results and fixtures from data/espn_international.json (ESPN's public feed)."""
+    try:
+        store = json.loads(ESPN_FILE.read_text(encoding="utf-8"))
+        matches = store["matches"]
+    except (OSError, ValueError, KeyError):
+        return [], []
+    FEED["updated"] = store.get("updated")
+    plain = {_plain(n): n for n in names}
+    for alt, real in ESPN_ALIASES.items():
+        if real in names:
+            plain.setdefault(_plain(alt), real)
+    have = defaultdict(set)
+    for d, h, a, *_ in existing:
+        have[frozenset((h, a))].add(date.fromisoformat(d).toordinal())
+    results, fixtures, unknown = [], [], set()
+    today = date.today().isoformat()
+    for m in sorted(matches.values(), key=lambda m: (m.get("date", ""), m.get("time", ""))):
+        try:
+            d = date.fromisoformat(m["date"])
+            pair = [plain.get(_plain(m[k])) for k in ("home", "away")]
+        except (KeyError, ValueError, TypeError):
+            continue
+        if None in pair:
+            # youth sides, clubs and regional teams turn up in the friendlies list; they are left out
+            unknown.update(m[k] for k, v in zip(("home", "away"), pair) if v is None)
+            continue
+        h, a = pair
+        if h == a:
+            continue
+        # neutral if ESPN says so, or if the match isn't played in the home team's country
+        where = plain.get(_plain(m.get("country") or ""))
+        neutral = bool(m.get("neutral")) or (where is not None and where != h)
+        tour = m.get("tournament") or "Friendly"
+        key = frozenset((h, a))
+        if m.get("state") == "played":
+            if any(abs(d.toordinal() - x) <= 2 for x in have[key]):
+                FEED["already_known"] += 1
+                continue   # the main dataset has caught up with this match
+            try:
+                hg, ag = int(m["hg"]), int(m["ag"])
+            except (KeyError, ValueError, TypeError):
+                continue
+            have[key].add(d.toordinal())
+            results.append((d.isoformat(), h, a, hg, ag, tour, neutral))
+        elif m.get("state") == "upcoming" and m["date"] >= today:
+            fixtures.append({"date": m["date"], "time": m.get("time") or "", "tz": "UTC",
+                             "home_team": h, "away_team": a,
+                             "tournament": tour, "neutral": "TRUE" if neutral else "FALSE"})
+    FEED["results"], FEED["fixtures"], FEED["unknown"] = len(results), len(fixtures), sorted(unknown)[:40]
+    log(f"ESPN feed (saved {FEED['updated']} GMT): {len(results)} new results, {len(fixtures)} upcoming fixtures, "
+        f"{FEED['already_known']} already in the main data")
+    if unknown:
+        log("  left out, not teams the model rates: " + ", ".join(sorted(unknown)[:25])
+            + (" ..." if len(unknown) > 25 else ""))
     return results, fixtures
 
 
@@ -787,9 +873,22 @@ def load_international():
         if t == "FIFA World Cup qualification" and d >= "2000":
             fifa.update((h, a))
     COUNTRIES_FILE.write_text("\n".join(sorted(fifa)) + "\n", encoding="utf-8")
-    mine_res, mine_fix = read_my_matches(fifa, rows)
+    feed_res, feed_fix = read_espn(fifa, rows)
+    rows += feed_res
+    mine_res, mine_fix = read_my_matches(fifa, rows)   # the spreadsheet fills in whatever the feed lacks
     rows += mine_res
-    upcoming += mine_fix
+    # one line per upcoming match: the feed first (it has kick-off times), then the spreadsheet, then the main file
+    listed, merged = defaultdict(set), []
+    for u in feed_fix + mine_fix + upcoming:
+        try:
+            key, day = frozenset((u["home_team"], u["away_team"])), date.fromisoformat(u["date"]).toordinal()
+        except (KeyError, ValueError, TypeError):
+            continue
+        if any(abs(day - x) <= 2 for x in listed[key]):
+            continue
+        listed[key].add(day)
+        merged.append(u)
+    upcoming = merged
     rows = sorted((r for r in rows if r[1] in fifa and r[2] in fifa), key=lambda r: r[0])
     if not rows:
         return None
@@ -1323,7 +1422,7 @@ def main():
     if I is not None:
         leagues[INT] = final_int(I, int_ratings, bt_int["elo_logit"])
         for u in I["upcoming"]:  # the source lists upcoming internationals only occasionally
-            fixtures.append({"div": INT, "date": u["date"], "time": "", "tz": "",
+            fixtures.append({"div": INT, "date": u["date"], "time": u.get("time") or "", "tz": u.get("tz") or "",
                              "home": u["home_team"], "away": u["away_team"], "odds": None, "best": None,
                              "neutral": (u.get("neutral") or "").strip().upper() == "TRUE",
                              "comp": u.get("tournament") or ""})
@@ -1353,6 +1452,7 @@ def main():
         "cl_matches": 0 if C is None else C["n"],
         "warnings": WARNINGS,
         "sheet": SHEET,
+        "feed": FEED,
         "track": track,
         "settings": {"xi": XI, "window_days": WINDOW_DAYS, "elo_k": ELO_K, "value_edge": VALUE_EDGE},
     })
