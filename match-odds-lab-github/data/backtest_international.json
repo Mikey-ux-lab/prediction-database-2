@@ -1,28 +1,28 @@
 {
- "from": "2023-11-12",
- "to": "2026-11-11",
+ "from": "2023-11-13",
+ "to": "2026-11-12",
  "matches": 3099,
- "competitive": 2367,
+ "competitive": 2366,
  "elo_logit": [
-  -0.7268,
-  0.2675,
+  -0.7271,
+  0.2674,
   0.51
  ],
  "home_win_rate": 0.4721,
  "models": {
   "Dixon-Coles": {
-   "logloss": 0.8579,
-   "brier": 0.5035,
+   "logloss": 0.8577,
+   "brier": 0.5033,
    "accuracy": 0.6047
   },
   "Elo": {
-   "logloss": 0.8611,
-   "brier": 0.5066,
-   "accuracy": 0.605
+   "logloss": 0.8608,
+   "brier": 0.5064,
+   "accuracy": 0.6054
   },
   "Ensemble": {
-   "logloss": 0.8541,
-   "brier": 0.5015,
+   "logloss": 0.8539,
+   "brier": 0.5013,
    "accuracy": 0.6073
   }
  },
@@ -30,50 +30,50 @@
   "Dixon-Coles": {
    "logloss": 0.8481,
    "brier": 0.497,
-   "accuracy": 0.613
+   "accuracy": 0.6128
   },
   "Elo": {
-   "logloss": 0.8528,
-   "brier": 0.5013,
-   "accuracy": 0.6088
+   "logloss": 0.8527,
+   "brier": 0.5012,
+   "accuracy": 0.609
   },
   "Ensemble": {
-   "logloss": 0.8455,
+   "logloss": 0.8454,
    "brier": 0.4957,
-   "accuracy": 0.6139
+   "accuracy": 0.6137
   }
  },
  "friendlies_only": {
   "Dixon-Coles": {
-   "logloss": 0.8897,
-   "brier": 0.5244,
-   "accuracy": 0.5779
+   "logloss": 0.8887,
+   "brier": 0.5237,
+   "accuracy": 0.5784
   },
   "Elo": {
-   "logloss": 0.8881,
-   "brier": 0.5238,
-   "accuracy": 0.5929
+   "logloss": 0.887,
+   "brier": 0.5231,
+   "accuracy": 0.5935
   },
   "Ensemble": {
-   "logloss": 0.8822,
-   "brier": 0.5202,
-   "accuracy": 0.5861
+   "logloss": 0.8812,
+   "brier": 0.5195,
+   "accuracy": 0.5866
   }
  },
  "over25": {
-  "Dixon-Coles": 0.6782,
+  "Dixon-Coles": 0.6781,
   "Base rate": 0.6931
  },
  "btts": {
-  "Dixon-Coles": 0.677,
+  "Dixon-Coles": 0.6768,
   "Base rate": 0.6854
  },
  "calibration": [
   {
    "bin": "0-10%",
    "predicted": 0.0577,
-   "actual": 0.0376,
-   "n": 1064
+   "actual": 0.0375,
+   "n": 1066
   },
   {
    "bin": "10-20%",
@@ -84,14 +84,14 @@
   {
    "bin": "20-30%",
    "predicted": 0.2566,
-   "actual": 0.2618,
-   "n": 2582
+   "actual": 0.2619,
+   "n": 2581
   },
   {
    "bin": "30-40%",
    "predicted": 0.3359,
-   "actual": 0.331,
-   "n": 1293
+   "actual": 0.3308,
+   "n": 1291
   },
   {
    "bin": "40-50%",
@@ -119,9 +119,9 @@
   },
   {
    "bin": "80-90%",
-   "predicted": 0.8457,
-   "actual": 0.9105,
-   "n": 313
+   "predicted": 0.8458,
+   "actual": 0.9108,
+   "n": 314
   },
   {
    "bin": "90-100%",
