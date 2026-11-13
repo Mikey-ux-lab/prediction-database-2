@@ -1,14 +1,14 @@
 {
- "from": "2023-11-13",
- "to": "2026-11-12",
- "matches": 3120,
- "competitive": 2384,
+ "from": "2023-11-14",
+ "to": "2026-11-13",
+ "matches": 3122,
+ "competitive": 2386,
  "elo_logit": [
   -0.7271,
   0.2674,
   0.51
  ],
- "home_win_rate": 0.4724,
+ "home_win_rate": 0.4721,
  "models": {
   "Dixon-Coles": {
    "logloss": 0.8563,
@@ -18,29 +18,29 @@
   "Elo": {
    "logloss": 0.859,
    "brier": 0.5052,
-   "accuracy": 0.6058
+   "accuracy": 0.6057
   },
   "Ensemble": {
    "logloss": 0.8523,
    "brier": 0.5002,
-   "accuracy": 0.608
+   "accuracy": 0.6079
   }
  },
  "competitive_only": {
   "Dixon-Coles": {
    "logloss": 0.8461,
    "brier": 0.4955,
-   "accuracy": 0.6141
+   "accuracy": 0.614
   },
   "Elo": {
    "logloss": 0.8499,
    "brier": 0.4993,
-   "accuracy": 0.6103
+   "accuracy": 0.6102
   },
   "Ensemble": {
    "logloss": 0.843,
    "brier": 0.494,
-   "accuracy": 0.6149
+   "accuracy": 0.6148
   }
  },
  "friendlies_only": {
@@ -65,7 +65,7 @@
   "Base rate": 0.6931
  },
  "btts": {
-  "Dixon-Coles": 0.6764,
+  "Dixon-Coles": 0.6765,
   "Base rate": 0.6857
  },
  "calibration": [
@@ -78,20 +78,20 @@
   {
    "bin": "10-20%",
    "predicted": 0.1515,
-   "actual": 0.1325,
-   "n": 1683
+   "actual": 0.1324,
+   "n": 1684
   },
   {
    "bin": "20-30%",
    "predicted": 0.2566,
-   "actual": 0.2619,
-   "n": 2596
+   "actual": 0.2621,
+   "n": 2598
   },
   {
    "bin": "30-40%",
    "predicted": 0.3359,
-   "actual": 0.331,
-   "n": 1299
+   "actual": 0.3305,
+   "n": 1301
   },
   {
    "bin": "40-50%",
@@ -108,8 +108,8 @@
   {
    "bin": "60-70%",
    "predicted": 0.6473,
-   "actual": 0.6617,
-   "n": 532
+   "actual": 0.6623,
+   "n": 533
   },
   {
    "bin": "70-80%",
